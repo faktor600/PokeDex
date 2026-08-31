@@ -21,7 +21,8 @@ fun PokemonResponse.toDomain(): Pokemon {
         cries = cries.toDomain(),
         forms = forms.map { it.name ?: "" },
         locationAreaEncounters = locationAreaEncounters,
-        moves = moves.map { it.toDomain() }
+        moves = moves.map { it.toDomain() },
+        officialArtwork = sprites.other.officialArtwork?.frontDefault ?: ""
     )
 }
 
@@ -37,7 +38,7 @@ fun AbilityEntry.toDomain(): Ability {
 fun CryResponse.toDomain(): Cry {
     return Cry(
         latest = latest,
-        legacy = legacy
+        legacy = legacy ?: ""
     )
 }
 

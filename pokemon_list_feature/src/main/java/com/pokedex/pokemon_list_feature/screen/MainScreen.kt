@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -17,14 +18,19 @@ import androidx.compose.foundation.layout.safeContent
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -32,16 +38,20 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import com.airbnb.lottie.compose.rememberLottieComposition
 import com.pokedex.compose_core.components.FiltersButton
 import com.pokedex.compose_core.components.PokemonCardSmall
+import com.pokedex.compose_core.components.PokemonCardSmallSkeleton
 import com.pokedex.compose_core.components.SearchField
 import com.pokedex.compose_core.di.daggerViewModel
 import com.pokedex.compose_core.models.PokemonCardUiModel
 import com.pokedex.compose_core.R as ComposeCoreR
 import com.pokedex.compose_core.theme.AppTheme
 import com.pokedex.pokemon_list_feature.R
-import com.pokedex.pokemon_list_feature.di.DaggerMainScreenComponent
 import com.pokedex.pokemon_list_feature.state.MainScreenUiState
 import com.pokedex.pokemon_list_feature.viewModel.MainScreenIntent
 import com.pokedex.pokemon_list_feature.viewModel.MainScreenSideEffect
@@ -49,9 +59,7 @@ import com.pokedex.pokemon_list_feature.viewModel.MainViewModel
 
 @Composable
 fun MainScreen(
-    viewModel: MainViewModel = daggerViewModel<MainViewModel> {
-        DaggerMainScreenComponent.create().viewModel()
-    }
+    viewModel: MainViewModel = daggerViewModel()
 ) {
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -79,6 +87,7 @@ fun MainScreen(
         onClearText = {
             viewModel.handleIntent(MainScreenIntent.ClearText)
         },
+        triggerNextPageLoading = viewModel::loadNextPage,
         onCardClick = {}
     )
 }
@@ -88,6 +97,7 @@ private fun MainScreenContent(
     uiState: MainScreenUiState,
     onFiltersButtonClick: () -> Unit,
     onTextChange: (newText: String) -> Unit,
+    triggerNextPageLoading: () -> Unit,
     onClearText: () -> Unit,
     onCardClick: (item: PokemonCardUiModel) -> Unit
 ) {
@@ -117,28 +127,63 @@ private fun MainScreenContent(
                     shape = RoundedCornerShape(8.dp)
                 )
         ) {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(3),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(
-                    horizontal = 12.dp,
-                    vertical = 24.dp
-                )
-            ) {
-                items(
-                    count = uiState.items.size,
-                    key = {
-                        uiState.items[it].pokemonId
-                    }
-                ) {
-                    val item = uiState.items[it]
-                    PokemonCardSmall(
-                        model = item,
-                        onCardClick = {
-                            onCardClick.invoke(item)
-                        }
+            if (uiState.isLoading) {
+                val composition = rememberLottieComposition(
+                    spec = LottieCompositionSpec.RawRes(
+                        com.pokedex.compose_core.R.raw.pokeball_loading
                     )
+                )
+                val progress by animateLottieCompositionAsState(
+                    composition = composition.value,
+                    iterations = LottieConstants.IterateForever
+                )
+
+                LottieAnimation(
+                    modifier = Modifier
+                        .aspectRatio(3f)
+                        .align(Alignment.Center),
+                    composition = composition.value,
+                    progress = { progress }
+                )
+            } else {
+                val state = rememberLazyGridState()
+                val indexVisible = remember {
+                    derivedStateOf { state.firstVisibleItemIndex }
+                }
+                LaunchedEffect(indexVisible.value) {
+                    if (indexVisible.value >= uiState.items.size / 3 - 3) {
+                        triggerNextPageLoading()
+                    }
+                }
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(3),
+                    state = state,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(
+                        horizontal = 12.dp,
+                        vertical = 24.dp
+                    )
+                ) {
+                    items(
+                        count = uiState.items.size,
+                        key = {
+                            uiState.items[it].urlId
+                        },
+                    ) {
+                        when (val item = uiState.items[it]) {
+                            is PokemonCardUiModel.PokemonSkeleton -> PokemonCardSmallSkeleton(
+                                pokemonSkeleton = item
+                            )
+
+                            is PokemonCardUiModel.Pokemon -> PokemonCardSmall(
+                                model = item,
+                                onCardClick = {
+                                    onCardClick.invoke(item)
+                                }
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -218,21 +263,22 @@ private fun MainScreenContentPreview() {
     AppTheme {
         MainScreenContent(
             uiState = MainScreenUiState(
+                isLoading = true,
                 items = listOf(
-                    PokemonCardUiModel(
-                        pokemonId = 1,
+                    PokemonCardUiModel.Pokemon(
+                        urlId = "143",
                         pokemonNumber = "1",
                         pokemonName = "name",
                         url = ""
                     ),
-                    PokemonCardUiModel(
-                        pokemonId = 2,
+                    PokemonCardUiModel.Pokemon(
+                        urlId = "123",
                         pokemonNumber = "1",
                         pokemonName = "name",
                         url = ""
                     ),
-                    PokemonCardUiModel(
-                        pokemonId = 3,
+                    PokemonCardUiModel.Pokemon(
+                        urlId = "13",
                         pokemonNumber = "1",
                         pokemonName = "name",
                         url = ""
@@ -243,6 +289,7 @@ private fun MainScreenContentPreview() {
             onTextChange = {},
             onClearText = {},
             onCardClick = {},
+            triggerNextPageLoading = {}
         )
     }
 }

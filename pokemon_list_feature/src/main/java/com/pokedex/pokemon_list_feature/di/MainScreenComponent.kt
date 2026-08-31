@@ -1,35 +1,32 @@
 package com.pokedex.pokemon_list_feature.di
 
 import com.pokedex.api_pokemon.domain.di.PokemonApiModule
+import com.pokedex.core.di.ComponentFactory
 import com.pokedex.core.di.ComponentWithViewModel
-import com.pokedex.core.network.di.NetworkModule
+import com.pokedex.core.di.ConcreteComponentFactory
 import com.pokedex.pokemon_list_feature.viewModel.MainViewModel
 import dagger.Binds
-import dagger.Component
 import dagger.Module
 import dagger.Subcomponent
 import dagger.multibindings.ClassKey
 import dagger.multibindings.IntoMap
-import javax.inject.Scope
 
-@Component(
+@Subcomponent(
     modules = [
-        MainViewModelModule::class, NetworkModule::class
+        PokemonApiModule::class,
     ]
 )
 interface MainScreenComponent: ComponentWithViewModel<MainViewModel> {
 
+    @Subcomponent.Factory
+    interface Factory: ComponentFactory<MainScreenComponent>
 }
 
-@Module(
-    includes = [
-        PokemonApiModule::class
-    ]
-)
-abstract class MainViewModelModule {
+@Module
+abstract class MainScreenComponentFactoryModule {
 
     @Binds
     @IntoMap
     @ClassKey(MainViewModel::class)
-    abstract fun provideViewModel(impl: MainViewModel): MainViewModel
+    internal abstract fun bindMainScreenProvider(provider: MainScreenComponent.Factory): ConcreteComponentFactory
 }

@@ -18,8 +18,12 @@ dependencies {
     implementation(libs.dagger)
     api(libs.retrofit)
     api(libs.okhttp)
+    implementation(libs.okhttp.logging)
+
     implementation(libs.kotlinx.serialization.core)
     implementation("com.squareup.retrofit2:converter-kotlinx-serialization:3.0.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
+    implementation(libs.room)
+    ksp(libs.room.ksp)
     ksp(libs.dagger.processor)
 }

@@ -12,7 +12,8 @@ data class Pokemon(
     val cries: Cry,
     val forms: List<String>,
     val locationAreaEncounters: String,
-    val moves: List<MoveEntry>
+    val moves: List<MoveEntry>,
+    val officialArtwork: String?
 )
 
 data class Ability(

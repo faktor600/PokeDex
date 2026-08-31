@@ -4,18 +4,21 @@ import androidx.compose.runtime.Composable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pokedex.compose_core.provider.LocalComponentFactoryMapProvider
 
 @Composable
 inline fun <reified T : ViewModel> daggerViewModel(
     key: String? = null,
-    crossinline viewModelInstanceCreator: (() -> ViewModel)
-): T =
-    viewModel(
+): T {
+    val componentsMap = LocalComponentFactoryMapProvider.current
+
+    return viewModel(
         modelClass = T::class.java,
         key = key,
         factory = object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return viewModelInstanceCreator() as T
+                return (componentsMap[modelClass]?.create()?.viewModel() as? T) ?: error("No ${modelClass.name} found in map dependencies")
             }
         }
     )
+}
