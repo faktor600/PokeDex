@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.pokedex.api_pokemon.domain.usecase.GetFirstPokemonPageUseCase
 import com.pokedex.api_pokemon.domain.usecase.GetNextPokemonPageUseCase
 import com.pokedex.api_pokemon.domain.usecase.GetPokemonUseCase
+import com.pokedex.api_pokemon.domain.usecase.SearchPokemonsUseCase
 import com.pokedex.compose_core.models.PokemonCardUiModel
 import com.pokedex.pokemon_list_feature.state.MainScreenUiState
 import kotlinx.coroutines.FlowPreview
@@ -14,7 +15,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -25,7 +28,8 @@ import javax.inject.Inject
 class MainViewModel @Inject constructor(
     private val getFirstPokemonPageUseCase: GetFirstPokemonPageUseCase,
     private val getPokemonUseCase: GetPokemonUseCase,
-    private val getNextPokemonPageUseCase: GetNextPokemonPageUseCase
+    private val getNextPokemonPageUseCase: GetNextPokemonPageUseCase,
+    private val searchPokemonsUseCase: SearchPokemonsUseCase
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(MainScreenUiState())
     val uiState: StateFlow<MainScreenUiState>
@@ -42,14 +46,46 @@ class MainViewModel @Inject constructor(
     @OptIn(FlowPreview::class)
     fun initialize() {
         uiState
-            .debounce(500L)
+            .map { it.searchText }
+            .distinctUntilChanged()
+            .debounce(200L)
             .onEach {
-                // Поиск по строке
-                println(it.searchText)
+                if (it.isEmpty()) {
+                    _uiState.update {
+                        it.copy(
+                            items = emptyList(),
+                            nextPageUrl = ""
+                        )
+                    }
+                    loadNextPage()
+                } else {
+                    val searchResult = searchPokemonsUseCase.execute(it)
+
+                    if (searchResult.isSuccess) {
+                        _uiState.update {
+                            it.copy(
+                                items = searchResult.getOrNull()?.map {
+                                    PokemonCardUiModel.Pokemon(
+                                        urlId = it.id.toString(),
+                                        pokemonNumber = "#${it.id}",
+                                        pokemonName = it.name.replaceFirstChar {
+                                            if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
+                                        },
+                                        url = it.officialArtwork ?: ""
+                                    )
+                                } ?: emptyList()
+                            )
+                        }
+                    } else {
+                        _uiState.update {
+                            it.copy(
+                                items = emptyList()
+                            )
+                        }
+                    }
+                }
             }
             .launchIn(viewModelScope)
-
-        loadNextPage()
     }
 
     fun loadNextPage() {

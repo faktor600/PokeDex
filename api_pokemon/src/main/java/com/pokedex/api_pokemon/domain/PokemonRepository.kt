@@ -7,4 +7,5 @@ interface PokemonRepository {
     suspend fun getFirstPokemonPage(): Result<Pagination>
     suspend fun getNextPokemonPage(url: String): Result<Pagination>
     suspend fun getPokemon(url: String): Result<Pokemon>
+    suspend fun searchForPokemonsByNameOrId(text: String): Result<List<Pokemon>>
 }

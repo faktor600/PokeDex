@@ -24,5 +24,8 @@ dependencies {
     implementation(libs.dagger)
     ksp(libs.dagger.processor)
 
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
+
     implementation(project(":core"))
+    implementation(project(":api_pokemon:dao"))
 }

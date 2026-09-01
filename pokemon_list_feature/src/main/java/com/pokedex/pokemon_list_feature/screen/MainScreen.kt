@@ -31,6 +31,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -146,12 +147,19 @@ private fun MainScreenContent(
                     progress = { progress }
                 )
             } else {
-                val state = rememberLazyGridState()
-                val indexVisible = remember {
+                val state = rememberSaveable(
+                    uiState.searchText,
+                    saver = LazyGridState.Saver
+                ) {
+                    LazyGridState(0, 0)
+                }
+                val indexVisible = remember(
+                    uiState.searchText
+                ) {
                     derivedStateOf { state.firstVisibleItemIndex }
                 }
                 LaunchedEffect(indexVisible.value) {
-                    if (indexVisible.value >= uiState.items.size / 3 - 3) {
+                    if (indexVisible.value >= uiState.items.size / 3 - 3 && uiState.searchText.isEmpty()) {
                         triggerNextPageLoading()
                     }
                 }

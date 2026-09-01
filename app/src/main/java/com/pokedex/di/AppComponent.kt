@@ -13,7 +13,8 @@ import javax.inject.Singleton
         NetworkModule::class,
         MainScreenComponentFactoryModule::class,
         AppContextModule::class,
-        ChuckerModule::class
+        ChuckerModule::class,
+        DatabaseModule::class
     ]
 )
 interface AppComponent {

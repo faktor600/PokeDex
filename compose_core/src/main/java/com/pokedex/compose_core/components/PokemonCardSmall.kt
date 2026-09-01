@@ -14,9 +14,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import coil3.compose.AsyncImage
 import com.pokedex.compose_core.R
 import com.pokedex.compose_core.common.dropShadow2dp
@@ -61,12 +63,15 @@ fun PokemonCardSmall(
                     .padding(
                         bottom = 4.dp,
                         top = 24.dp
-                    ),
+                    )
+                    .zIndex(30f)
+                    .fillMaxWidth(),
                 text = model.pokemonName,
                 style = AppTheme.bodyTypography().body3,
                 color = AppTheme.grayscaleColor().dark,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center
             )
         }
 
@@ -129,12 +134,14 @@ fun PokemonCardSmallSkeleton(
                     .padding(
                         bottom = 4.dp,
                         top = 24.dp
-                    ),
+                    )
+                    .fillMaxWidth(),
                 text = pokemonSkeleton?.pokemonName ?: "",
                 style = AppTheme.bodyTypography().body3,
                 color = AppTheme.grayscaleColor().dark,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center
             )
         }
 

@@ -43,11 +43,16 @@ dependencies {
     implementation(project(":core"))
     implementation(project(":compose_core"))
     implementation(project(":pokemon_list_feature"))
+    implementation(project(":core_database"))
+    implementation(project(":api_pokemon:dao"))
 
     implementation(libs.kotlinx.serialization.core)
 
     implementation(libs.dagger)
     ksp(libs.dagger.processor)
+
+    implementation(libs.room)
+    ksp(libs.room.ksp)
 
     implementation(libs.bundles.navigation)
     implementation(libs.androidx.core.ktx)
