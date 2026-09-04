@@ -30,6 +30,12 @@ class AppTypography(
 
 @Immutable
 class Header(
+    val header: TextStyle = TextStyle(
+        fontFamily = FontFamily(fontBold),
+        lineHeight = 44.sp,
+        fontSize = 36.sp,
+        letterSpacing = 0.sp
+    ),
     val headline: TextStyle = TextStyle(
         fontFamily = FontFamily(fontBold),
         lineHeight = 32.sp,

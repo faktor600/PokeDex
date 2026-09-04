@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="app_name">Pokédex</string>
+
     <string name="pokemon_type_name_normal">Normal</string>
     <string name="pokemon_type_name_fighting">Fighting</string>
     <string name="pokemon_type_name_flying">Flying</string>
@@ -20,4 +22,6 @@
     <string name="pokemon_type_name_fairy">Fairy</string>
     <string name="pokemon_type_name_stellar">Stellar</string>
     <string name="pokemon_type_name_unknown">Unknown</string>
+    
+    <string name="app_header_description">YOUR POKÉMON COMPANION</string>
 </resources>
