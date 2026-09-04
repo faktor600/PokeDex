@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="welcome_message_title">Welcome!</string>
+    <string name="welcome_description">To get started, load the Pokémon data the app needs to work.</string>
+    <string name="welcome_button_load">Load Pokémon data</string>
+
+    <string name="welcome_loading_title">Loading Pokémon data</string>
+    <string name="welcome_loading_description">Pokémon data will continue loading in the background.</string>
+    <string name="welcome_loading_progress_bar_title">Downloading data</string>
+
+    <string name="welcome_load_ended_title">Pokémon data is ready!</string>
+    <string name="welcome_load_ended_description">Your Pokédex is all set. Start exploring and find your favorite Pokémon.</string>
+    <string name="welcome_load_ended_button">Let\'s start</string>
+</resources>

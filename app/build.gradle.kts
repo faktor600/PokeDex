@@ -45,6 +45,8 @@ dependencies {
     implementation(project(":pokemon_list_feature"))
     implementation(project(":core_database"))
     implementation(project(":api_pokemon:dao"))
+    implementation(project(":pokedex_welcome"))
+    implementation(project(":data_store"))
 
     implementation(libs.kotlinx.serialization.core)
 

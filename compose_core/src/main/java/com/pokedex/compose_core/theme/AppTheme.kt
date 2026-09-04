@@ -58,4 +58,8 @@ object AppTheme {
     @Composable
     @ReadOnlyComposable
     fun bodyTypography() = appTypography.body
+
+    @Composable
+    @ReadOnlyComposable
+    fun buttonTypography() = appTypography.button
 }

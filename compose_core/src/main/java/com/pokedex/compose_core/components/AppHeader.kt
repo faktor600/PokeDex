@@ -1,12 +1,11 @@
 package com.pokedex.compose_core.components
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -19,14 +18,20 @@ import com.pokedex.compose_core.R
 import com.pokedex.compose_core.theme.AppTheme
 
 @Composable
-fun AppHeader() {
+fun AppHeader(
+    modifier: Modifier = Modifier
+) {
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Image(
+        Spacer(
+            modifier = Modifier.height(36.dp)
+        )
+        Icon(
             modifier = Modifier.size(48.dp),
-            painter = painterResource(R.drawable.ic_pokeball_colored),
+            painter = painterResource(R.drawable.ic_pokeball),
+            tint = AppTheme.identityColor().primary,
             contentDescription = null
         )
 

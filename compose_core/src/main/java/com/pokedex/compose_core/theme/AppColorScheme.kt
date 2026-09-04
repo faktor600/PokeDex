@@ -24,7 +24,8 @@ class AppColorScheme(
 
 @Immutable
 class Identity(
-    val primary: Color = Color(0xFFDC0A2D)
+    val primary: Color = Color(0xFFDC0A2D),
+    val secondaryContainer: Color = Color(0xFFF3D5DB)
 )
 
 @Immutable

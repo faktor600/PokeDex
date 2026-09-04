@@ -41,6 +41,8 @@ dependencies {
     implementation(libs.dagger)
     ksp(libs.dagger.processor)
 
+    implementation(libs.androidx.datastore.preferences)
+
     implementation(libs.bundles.navigation)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

@@ -16,16 +16,19 @@ internal val fontRegular = Font(R.font.poppins_regular)
 @Stable
 internal fun appTypography(
     header: Header = Header(),
-    body: Body = Body()
+    body: Body = Body(),
+    button: Button = Button()
 ) = AppTypography(
     header = header,
-    body = body
+    body = body,
+    button = button
 )
 
 @Immutable
 class AppTypography(
     val header: Header = Header(),
-    val body: Body = Body()
+    val body: Body = Body(),
+    val button: Button = Button()
 )
 
 @Immutable
@@ -86,6 +89,16 @@ class Body(
         fontFamily = FontFamily(fontRegular),
         lineHeight = 12.sp,
         fontSize = 8.sp,
+        letterSpacing = 0.sp
+    ),
+)
+
+@Immutable
+class Button(
+    val button1: TextStyle = TextStyle(
+        fontFamily = FontFamily(fontBold),
+        lineHeight = 24.sp,
+        fontSize = 16.sp,
         letterSpacing = 0.sp
     ),
 )
