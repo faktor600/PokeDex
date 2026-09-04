@@ -4,10 +4,12 @@ import com.pokedex.api_pokemon.data.response.AbilityEntry
 import com.pokedex.api_pokemon.data.response.CryResponse
 import com.pokedex.api_pokemon.data.response.MoveEntryResponse
 import com.pokedex.api_pokemon.data.response.PokemonResponse
+import com.pokedex.api_pokemon.data.response.StatEntry
 import com.pokedex.api_pokemon.domain.model.Ability
 import com.pokedex.api_pokemon.domain.model.Cry
 import com.pokedex.api_pokemon.domain.model.MoveEntry
 import com.pokedex.api_pokemon.domain.model.Pokemon
+import com.pokedex.api_pokemon.domain.model.Stat
 import com.pokedex.core.network.mapper.toDomain
 
 fun PokemonResponse.toDomain(): Pokemon {
@@ -22,7 +24,16 @@ fun PokemonResponse.toDomain(): Pokemon {
         forms = forms.map { it.name ?: "" },
         locationAreaEncounters = locationAreaEncounters,
         moves = moves.map { it.toDomain() },
+        stats = stats.map { it.toDomain() },
         officialArtwork = sprites.other.officialArtwork?.frontDefault ?: ""
+    )
+}
+
+fun StatEntry.toDomain(): Stat {
+    return Stat(
+        baseStat = baseStat,
+        effort = effort,
+        stat = stat.toDomain()
     )
 }
 

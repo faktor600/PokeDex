@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="details_about_title">About</string>
+
+    <string name="weight_details">Weight</string>
+    <string name="height_details">Height</string>
+    <string name="moves_details">Moves</string>
+    
+    <string name="base_stats_title">Base Stats</string>
+</resources>

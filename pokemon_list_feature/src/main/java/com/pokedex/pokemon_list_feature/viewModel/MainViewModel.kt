@@ -21,7 +21,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.withPermit
 import java.util.Locale
 import javax.inject.Inject
 
@@ -40,8 +39,6 @@ class MainViewModel @Inject constructor(
         get() = _sideEffect
 
     private var nextPageJob: Job? = null
-
-    val semaphore = kotlinx.coroutines.sync.Semaphore(20)
 
     @OptIn(FlowPreview::class)
     fun initialize() {
@@ -121,7 +118,6 @@ class MainViewModel @Inject constructor(
                 // 2. Запускаем загрузку каждого покемона с ограничением на количество параллельных запросов
                 pokemonList.forEach { item ->
                     launch {
-                        semaphore.withPermit {
                             val pokemon = getPokemonUseCase.execute(item.url)
 
                             if (pokemon.isFailure) {
@@ -157,7 +153,6 @@ class MainViewModel @Inject constructor(
                                     }
                                 }
                             }
-                        }
                     }
                 }
             }

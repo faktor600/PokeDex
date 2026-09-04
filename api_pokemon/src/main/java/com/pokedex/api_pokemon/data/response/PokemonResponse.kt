@@ -36,6 +36,9 @@ class PokemonResponse(
     @SerialName("moves")
     val moves: List<MoveEntryResponse>,
 
+    @SerialName("stats")
+    val stats: List<StatEntry>,
+
     @SerialName("sprites")
     val sprites: PokemonSprites
 )
@@ -171,5 +174,17 @@ class CryResponse(
 class MoveEntryResponse(
     @SerialName("move")
     val move: ItemWithUrlResponse
+)
+
+@Serializable
+data class StatEntry(
+    @SerialName("base_stat")
+    val baseStat: Int,
+
+    @SerialName("effort")
+    val effort: Int,
+
+    @SerialName("stat")
+    val stat: ItemWithUrlResponse
 )
 

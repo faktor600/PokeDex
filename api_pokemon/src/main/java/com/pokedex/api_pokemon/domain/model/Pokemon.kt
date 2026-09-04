@@ -13,7 +13,14 @@ data class Pokemon(
     val forms: List<String>,
     val locationAreaEncounters: String,
     val moves: List<MoveEntry>,
+    val stats: List<Stat>,
     val officialArtwork: String?
+)
+
+data class Stat(
+    val baseStat: Int,
+    val effort: Int,
+    val stat: ItemWithUrl
 )
 
 data class Ability(

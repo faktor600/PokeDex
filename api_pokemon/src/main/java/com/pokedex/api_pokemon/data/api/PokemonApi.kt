@@ -2,6 +2,7 @@ package com.pokedex.api_pokemon.data.api
 
 import com.pokedex.api_pokemon.data.response.PokemonResponse
 import com.pokedex.core.network.models.PaginationResponse
+import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.Url
@@ -16,4 +17,7 @@ interface PokemonApi {
 
     @GET
     suspend fun getSinglePokemon(@Url url: String): Response<PokemonResponse>
+
+    @GET
+    suspend fun getSinglePokemonRaw(@Url url: String): Response<ResponseBody>
 }

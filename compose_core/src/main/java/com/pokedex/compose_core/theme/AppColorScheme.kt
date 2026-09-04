@@ -57,4 +57,5 @@ class Grayscale(
     val light: Color = Color(0xFFE0E0E0),
     val background: Color = Color(0xFFEFEFEF),
     val white: Color = Color.White,
+    val whireframe: Color = Color(0xFFB8B8B8)
 )
