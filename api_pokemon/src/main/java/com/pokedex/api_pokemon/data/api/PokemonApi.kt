@@ -5,6 +5,7 @@ import com.pokedex.core.network.models.PaginationResponse
 import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.GET
+import retrofit2.http.Path
 import retrofit2.http.Url
 
 interface PokemonApi {
@@ -15,8 +16,8 @@ interface PokemonApi {
     @GET
     suspend fun getNextPokemonPagination(@Url url: String): Response<PaginationResponse>
 
-    @GET
-    suspend fun getSinglePokemon(@Url url: String): Response<PokemonResponse>
+    @GET("pokemon/{id}")
+    suspend fun getSinglePokemon(@Path("id") id: Long): Response<PokemonResponse>
 
     @GET
     suspend fun getSinglePokemonRaw(@Url url: String): Response<ResponseBody>

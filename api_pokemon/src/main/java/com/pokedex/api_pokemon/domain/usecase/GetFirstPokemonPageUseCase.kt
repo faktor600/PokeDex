@@ -7,5 +7,5 @@ import javax.inject.Inject
 class GetFirstPokemonPageUseCase @Inject constructor(
     private val repository: PokemonRepository
 ) {
-    suspend fun execute(): Result<Pagination> = repository.getFirstPokemonPage()
+    suspend fun execute() = repository.loadFirstPokemonPageAndSave()
 }

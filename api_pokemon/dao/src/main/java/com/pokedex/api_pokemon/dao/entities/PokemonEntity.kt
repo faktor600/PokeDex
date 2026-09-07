@@ -13,7 +13,7 @@ data class PokemonEntity(
     val name: String,
 
     @ColumnInfo(POKEMON_DATA)
-    val json: String
+    val json: String?
 ) {
     companion object {
         const val POKEMON_TABLE_NAME = "pokemon"

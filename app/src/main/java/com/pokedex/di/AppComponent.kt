@@ -2,6 +2,7 @@ package com.pokedex.di
 
 import com.pokedex.core.di.ConcreteComponentFactory
 import com.pokedex.core.network.di.NetworkModule
+import com.pokedex.data_store.di.PokedexWelcomeDataStoreModule
 import com.pokedex.pokedex_welcome.di.PokedexWelcomeComponent
 import com.pokedex.pokedex_welcome.di.PokedexWelcomeComponentFactoryModule
 import com.pokedex.pokemon_list_feature.di.MainScreenComponentFactoryModule
@@ -13,14 +14,18 @@ import javax.inject.Singleton
 @Component(
     modules = [
         NetworkModule::class,
+        PokedexWelcomeDataStoreModule::class,
         MainScreenComponentFactoryModule::class,
         PokedexWelcomeComponentFactoryModule::class,
+        ActivityComponentComponentFactoryModule::class,
         AppContextModule::class,
         ChuckerModule::class,
         DatabaseModule::class
     ]
 )
 interface AppComponent {
+
+    fun mainActivityComponentFactory(): ActivityComponent.Factory
 
     fun pokedexWelcomeComponentFactory(): PokedexWelcomeComponent.Factory
 

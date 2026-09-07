@@ -93,7 +93,7 @@ fun MainScreen(
         onClearText = {
             viewModel.handleIntent(MainScreenIntent.ClearText)
         },
-        triggerNextPageLoading = viewModel::loadNextPage,
+        triggerNextPageLoading = {},
         onCardClick = {}
     )
 }

@@ -7,5 +7,5 @@ import javax.inject.Inject
 class GetNextPokemonPageUseCase @Inject constructor(
     private val repository: PokemonRepository
 ) {
-    suspend fun execute(url: String): Result<Pagination> = repository.getNextPokemonPage(url)
+    suspend fun execute(url: String) = repository.loadPokemonPageAndSave(url)
 }

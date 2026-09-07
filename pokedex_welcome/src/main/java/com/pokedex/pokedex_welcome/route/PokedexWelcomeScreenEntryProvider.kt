@@ -6,11 +6,15 @@ import androidx.navigation3.runtime.NavKey
 import com.pokedex.pokedex_welcome.screen.PokedexWelcomeScreen
 
 @Composable
-fun EntryProviderScope<NavKey>.PokedexWelcomeEntryProvider() {
+fun EntryProviderScope<NavKey>.PokedexWelcomeEntryProvider(
+    navigateToList: () -> Unit,
+) {
     addEntryProvider(
         key = PokedexWelcomeScreenRoute,
         content = {
-            PokedexWelcomeScreen()
+            PokedexWelcomeScreen(
+                navigateToList = navigateToList
+            )
         }
     )
 }

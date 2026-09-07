@@ -36,6 +36,7 @@ android {
 dependencies {
     implementation(project(":compose_core"))
     implementation(project(":core"))
+    implementation(project(":data_store"))
     api(project(":api_pokemon"))
 
     implementation(libs.dagger)

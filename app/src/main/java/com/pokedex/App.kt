@@ -4,7 +4,6 @@ import android.app.Application
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
-import coil3.memory.MemoryCache
 import coil3.util.DebugLogger
 import com.pokedex.di.AppComponent
 import com.pokedex.di.AppContextModule

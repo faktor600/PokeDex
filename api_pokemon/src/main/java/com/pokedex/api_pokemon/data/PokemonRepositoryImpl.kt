@@ -6,7 +6,9 @@ import com.pokedex.api_pokemon.data.api.PokemonApi
 import com.pokedex.api_pokemon.data.mapper.toDomain
 import com.pokedex.api_pokemon.data.response.PokemonResponse
 import com.pokedex.api_pokemon.domain.PokemonRepository
-import com.pokedex.api_pokemon.domain.model.Pokemon
+import com.pokedex.api_pokemon.domain.model.FirstPage
+import com.pokedex.api_pokemon.domain.model.NextPage
+import com.pokedex.api_pokemon.domain.model.PokemonHolder
 import com.pokedex.core.domain.model.Pagination
 import com.pokedex.core.network.mapper.toDomain
 import kotlinx.coroutines.Dispatchers
@@ -21,55 +23,24 @@ internal class PokemonRepositoryImpl @Inject constructor(
 ) : PokemonRepository {
 
     private val json = Json {
-        ignoreUnknownKeys = true // Важно для API: если API изменится, приложение не упадет
+        ignoreUnknownKeys = true
         coerceInputValues = true
     }
 
-    override suspend fun getFirstPokemonPage(): Result<Pagination> = withContext(Dispatchers.IO) {
-        try {
-            val response = api.getPokemonPaginationStart()
-            if (response.isSuccessful) {
-                response.body()?.toDomain()?.let {
-                    Result.success(it)
-                } ?: error("Empty response")
-            } else {
-                error("Failed with ${response.code()} code")
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    override suspend fun getNextPokemonPage(url: String): Result<Pagination> = withContext(Dispatchers.IO) {
-        try {
-            val response = api.getNextPokemonPagination(url)
-            if (response.isSuccessful) {
-                response.body()?.toDomain()?.let {
-                    Result.success(it)
-                } ?: error("Empty response")
-            } else {
-                error("Failed with ${response.code()} code")
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    override suspend fun getPokemon(url: String): Result<Pokemon> = withContext(Dispatchers.IO) {
-        val id = getPokemonIdFromUrl(url)
-
+    override suspend fun getPokemon(id: Long): Result<PokemonHolder.Pokemon> = withContext(Dispatchers.IO) {
         try {
             val cachedPokemon = pokemonDao.getPokemon(
                 id = id,
                 name = null
             )
 
-            if (cachedPokemon != null) {
+            cachedPokemon?.json?.let {
                 Result.success(
-                    json.decodeFromString<PokemonResponse>(cachedPokemon.json).toDomain()
+                    json.decodeFromString<PokemonResponse>(it).toDomain()
                 )
-            } else {
-                val response = api.getSinglePokemon(url)
+            } ?: run {
+                val response = api.getSinglePokemon(id)
+
                 if (response.isSuccessful) {
                     response.body()?.toDomain()?.let {
                         pokemonDao.insertPokemon(
@@ -90,10 +61,17 @@ internal class PokemonRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun searchForPokemonsByNameOrId(text: String): Result<List<Pokemon>> {
+    override suspend fun searchForPokemonsByNameOrId(text: String): Result<List<PokemonHolder>> {
         try {
             if (text.isEmpty()) {
-                val result = pokemonDao.getAll().map { json.decodeFromString<PokemonResponse>(it.json).toDomain() }
+                val result = pokemonDao.getAll().map { pokemonEntity ->
+                    pokemonEntity.json?.let {
+                        json.decodeFromString<PokemonResponse>(it).toDomain()
+                    } ?: PokemonHolder.PokemonNotLoaded(
+                        id = pokemonEntity.id,
+                        name = pokemonEntity.name
+                    )
+                }
 
                 return Result.success(
                     result
@@ -101,13 +79,74 @@ internal class PokemonRepositoryImpl @Inject constructor(
             }
 
             val result = pokemonDao.searchForPokemons(text)
-                ?.map { json.decodeFromString<PokemonResponse>(it.json).toDomain() }
+                ?.map { pokemonEntity ->
+                    pokemonEntity.json?.let {
+                        json.decodeFromString<PokemonResponse>(it).toDomain()
+                    } ?: PokemonHolder.PokemonNotLoaded(
+                        id = pokemonEntity.id,
+                        name = pokemonEntity.name
+                    )
+                }
 
             return Result.success(
                 result ?: emptyList()
             )
         } catch (e: Exception) {
             return Result.failure(e)
+        }
+    }
+
+    override suspend fun loadFirstPokemonPageAndSave(): Result<FirstPage> = withContext(Dispatchers.IO) {
+        try {
+            val response = api.getPokemonPaginationStart()
+            if (response.isSuccessful) {
+                val response = response.body()
+                pokemonDao.insertPokemons(
+                    response?.results?.map {
+                        PokemonEntity(
+                            id = getPokemonIdFromUrl(it.url),
+                            name = it.name ?: "",
+                            json = null
+                        )
+                    } ?: emptyList()
+                )
+                Result.success(
+                    FirstPage(
+                        pokemonCount = response?.count ?: 0,
+                        nextUrl = response?.next ?: ""
+                    )
+                )
+            } else {
+                error("Failed with ${response.code()} code")
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun loadPokemonPageAndSave(next: String): Result<NextPage> = withContext(Dispatchers.IO) {
+        try {
+            val response = api.getNextPokemonPagination(next)
+            if (response.isSuccessful) {
+                val response = response.body()
+                pokemonDao.insertPokemons(
+                    response?.results?.map {
+                        PokemonEntity(
+                            id = getPokemonIdFromUrl(it.url),
+                            name = it.name ?: "",
+                            json = null
+                        )
+                    } ?: emptyList()
+                )
+                Result.success(NextPage(
+                    nextUrl = response?.next ?: "",
+                    loadedCount = response?.results?.size ?: 0
+                ))
+            } else {
+                error("Failed with ${response.code()} code")
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 

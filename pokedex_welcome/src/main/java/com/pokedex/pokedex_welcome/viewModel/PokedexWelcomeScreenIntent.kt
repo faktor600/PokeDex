@@ -4,5 +4,5 @@ internal sealed class PokedexWelcomeScreenIntent {
 
     data object MoveToDownloadDatabaseStep: PokedexWelcomeScreenIntent()
 
-    data object MoveToFinishDownloadingStep: PokedexWelcomeScreenIntent()
+    data object MoveToPokemonsList: PokedexWelcomeScreenIntent()
 }

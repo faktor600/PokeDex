@@ -8,12 +8,12 @@ import com.pokedex.api_pokemon.data.response.StatEntry
 import com.pokedex.api_pokemon.domain.model.Ability
 import com.pokedex.api_pokemon.domain.model.Cry
 import com.pokedex.api_pokemon.domain.model.MoveEntry
-import com.pokedex.api_pokemon.domain.model.Pokemon
+import com.pokedex.api_pokemon.domain.model.PokemonHolder
 import com.pokedex.api_pokemon.domain.model.Stat
 import com.pokedex.core.network.mapper.toDomain
 
-fun PokemonResponse.toDomain(): Pokemon {
-    return Pokemon(
+fun PokemonResponse.toDomain(): PokemonHolder.Pokemon {
+    return PokemonHolder.Pokemon(
         id = id,
         name = name,
         baseExperience = baseExperience,

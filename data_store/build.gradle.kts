@@ -36,7 +36,7 @@ dependencies {
     implementation(libs.dagger)
     ksp(libs.dagger.processor)
 
-    implementation(libs.androidx.datastore.preferences)
+    api(libs.androidx.datastore.preferences)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
