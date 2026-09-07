@@ -1,7 +1,6 @@
 package com.pokedex.pokemon_list_feature.screen
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,16 +17,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContent
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -37,12 +32,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Popup
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
@@ -181,7 +174,7 @@ private fun MainScreenContent(
                     items(
                         count = uiState.items.size,
                         key = {
-                            uiState.items[it].urlId
+                            uiState.items[it].id
                         },
                     ) {
                         when (val item = uiState.items[it]) {
@@ -279,19 +272,19 @@ private fun MainScreenContentPreview() {
                 isLoading = true,
                 items = listOf(
                     PokemonCardUiModel.Pokemon(
-                        urlId = "143",
+                        id = 1,
                         pokemonNumber = "1",
                         pokemonName = "name",
                         url = ""
                     ),
                     PokemonCardUiModel.Pokemon(
-                        urlId = "123",
+                        id = 12,
                         pokemonNumber = "1",
                         pokemonName = "name",
                         url = ""
                     ),
                     PokemonCardUiModel.Pokemon(
-                        urlId = "13",
+                        id = 13,
                         pokemonNumber = "1",
                         pokemonName = "name",
                         url = ""

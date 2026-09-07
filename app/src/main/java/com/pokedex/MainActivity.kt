@@ -8,7 +8,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
@@ -36,6 +35,7 @@ class MainActivity : ComponentActivity() {
                 ) {
                     MainActivityScreen()
                 }
+            }
         }
     }
 }
@@ -66,5 +66,4 @@ private fun MainActivityScreen(
         onBack = { backStack.removeLastOrNull() },
         entryProvider = entryProvider
     )
-}
 }

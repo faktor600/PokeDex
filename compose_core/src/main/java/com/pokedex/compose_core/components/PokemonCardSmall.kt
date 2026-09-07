@@ -166,7 +166,7 @@ private fun PokemonCardSmallSkeletonPreview() {
         PokemonCardSmallSkeleton(
             pokemonSkeleton = PokemonCardUiModel.PokemonSkeleton(
                 pokemonName = "Pokémon Name",
-                urlId = "das"
+                id = 13
             )
         )
     }
@@ -184,7 +184,7 @@ private fun PokemonCardSmallPreview() {
                 pokemonNumber = "#999",
                 pokemonName = "Pokémon Name",
                 url = "",
-                urlId = "das"
+                id = 12
             ),
             onCardClick = {}
         )

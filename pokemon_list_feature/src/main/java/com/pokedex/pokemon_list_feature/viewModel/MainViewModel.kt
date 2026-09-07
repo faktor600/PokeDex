@@ -8,7 +8,6 @@ import com.pokedex.api_pokemon.domain.usecase.SearchPokemonsUseCase
 import com.pokedex.compose_core.models.PokemonCardUiModel
 import com.pokedex.pokemon_list_feature.state.MainScreenUiState
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -51,7 +50,7 @@ class MainViewModel @Inject constructor(
                             items = searchResult.getOrNull()?.map { result ->
                                 when (result) {
                                     is PokemonHolder.Pokemon -> PokemonCardUiModel.Pokemon(
-                                        urlId = result.id.toString(),
+                                        id = result.id,
                                         pokemonNumber = "#${result.id}",
                                         pokemonName = result.name.replaceFirstChar {
                                             if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
@@ -62,7 +61,7 @@ class MainViewModel @Inject constructor(
                                     is PokemonHolder.PokemonNotLoaded -> {
                                         PokemonCardUiModel.PokemonSkeleton(
                                             pokemonName = result.name,
-                                            urlId = result.id.toString()
+                                            id = result.id
                                         )
                                     }
                                 }
@@ -72,26 +71,22 @@ class MainViewModel @Inject constructor(
 
                     _uiState.value.items.filterIsInstance<PokemonCardUiModel.PokemonSkeleton>().onEach { skeleton ->
                         viewModelScope.launch {
-                            val pokemon = getPokemonUseCase.execute(skeleton.urlId.toLong())
+                            val pokemon = getPokemonUseCase.execute(skeleton.id)
 
                             if (pokemon.isSuccess) {
                                 pokemon.getOrNull()?.let { p ->
                                     val uiModel = PokemonCardUiModel.Pokemon(
-                                        urlId = p.id.toString(),
+                                        id = p.id,
                                         pokemonNumber = "#${p.id}",
                                         pokemonName = p.name.replaceFirstChar {
                                             if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
                                         },
                                         url = p.officialArtwork ?: ""
                                     )
-
-                                    // 3. АТОМАРНО добавляем покемона в текущий список
-                                    // update() гарантирует, что изменения будут применены безопасно,
-                                    // даже если 20 корутины вызовут его одновременно.
                                     _uiState.update { currentState ->
                                         // Находим индекс скелетона с тем же URL
                                         val index = currentState.items.indexOfFirst { item ->
-                                            item is PokemonCardUiModel.PokemonSkeleton && item.urlId.toLong() == skeleton.urlId.toLong()
+                                            item is PokemonCardUiModel.PokemonSkeleton && item.id == skeleton.id
                                         }
 
                                         if (index != -1) {
