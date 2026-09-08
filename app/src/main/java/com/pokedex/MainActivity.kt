@@ -20,6 +20,8 @@ import com.pokedex.pokedex_welcome.route.PokedexWelcomeEntryProvider
 import com.pokedex.pokedex_welcome.route.PokedexWelcomeScreenRoute
 import com.pokedex.pokemon_list_feature.route.MainScreenNavProvider
 import com.pokedex.pokemon_list_feature.route.MainScreenRoute
+import com.pokedex.splash_screen.route.SplashScreenEntryProvider
+import com.pokedex.splash_screen.route.SplashScreenScreenRoute
 import com.pokedex.viewmodel.MainActivityViewModel
 
 class MainActivity : ComponentActivity() {
@@ -44,19 +46,20 @@ class MainActivity : ComponentActivity() {
 private fun MainActivityScreen(
     viewModel: MainActivityViewModel = daggerViewModel()
 ) {
-    val isInitializedApp = viewModel.isInitialized.collectAsStateWithLifecycle(true)
-    val backStack = remember { mutableStateListOf<NavKey>(
-        if (isInitializedApp.value) {
-            MainScreenRoute
-        } else {
-            PokedexWelcomeScreenRoute
-        }
-    ) }
+    val backStack = remember { mutableStateListOf<NavKey>(SplashScreenScreenRoute) }
 
     val entryProvider: ((NavKey) -> NavEntry<NavKey>) = entryProvider {
         MainScreenNavProvider()
         PokedexWelcomeEntryProvider(
             navigateToList = {
+                backStack[backStack.lastIndex] = MainScreenRoute
+            }
+        )
+        SplashScreenEntryProvider(
+            navigateToWelcomeScreen = {
+                backStack[backStack.lastIndex] = PokedexWelcomeScreenRoute
+            },
+            navigateToPokemonList = {
                 backStack[backStack.lastIndex] = MainScreenRoute
             }
         )

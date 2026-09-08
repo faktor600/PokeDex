@@ -19,6 +19,7 @@
             <option value="$PROJECT_DIR$/pokedex_welcome" />
             <option value="$PROJECT_DIR$/pokemon_details" />
             <option value="$PROJECT_DIR$/pokemon_list_feature" />
+            <option value="$PROJECT_DIR$/splash_screen" />
           </set>
         </option>
       </GradleProjectSettings>

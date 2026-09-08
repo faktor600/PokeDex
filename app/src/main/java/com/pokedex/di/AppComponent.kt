@@ -7,6 +7,8 @@ import com.pokedex.pokedex_welcome.di.PokedexWelcomeComponent
 import com.pokedex.pokedex_welcome.di.PokedexWelcomeComponentFactoryModule
 import com.pokedex.pokemon_list_feature.di.MainScreenComponentFactoryModule
 import com.pokedex.pokemon_list_feature.di.MainScreenComponent
+import com.pokedex.splash_screen.di.SplashScreenComponent
+import com.pokedex.splash_screen.di.SplashScreenComponentFactoryModule
 import dagger.Component
 import javax.inject.Singleton
 
@@ -18,12 +20,15 @@ import javax.inject.Singleton
         MainScreenComponentFactoryModule::class,
         PokedexWelcomeComponentFactoryModule::class,
         ActivityComponentComponentFactoryModule::class,
+        SplashScreenComponentFactoryModule::class,
         AppContextModule::class,
         ChuckerModule::class,
         DatabaseModule::class
     ]
 )
 interface AppComponent {
+
+    fun splashScreenComponentFactory(): SplashScreenComponent.Factory
 
     fun mainActivityComponentFactory(): ActivityComponent.Factory
 
