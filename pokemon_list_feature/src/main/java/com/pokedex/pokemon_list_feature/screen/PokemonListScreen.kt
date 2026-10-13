@@ -28,12 +28,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -42,6 +44,7 @@ import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
+import com.pokedex.core.domain.model.PokemonId
 import com.pokedex.compose_core.components.FiltersButton
 import com.pokedex.compose_core.components.PokemonCardSmall
 import com.pokedex.compose_core.components.PokemonCardSmallSkeleton
@@ -51,21 +54,22 @@ import com.pokedex.compose_core.models.PokemonCardUiModel
 import com.pokedex.compose_core.R as ComposeCoreR
 import com.pokedex.compose_core.theme.AppTheme
 import com.pokedex.pokemon_list_feature.R
-import com.pokedex.pokemon_list_feature.state.MainScreenUiState
+import com.pokedex.pokemon_list_feature.state.PokemonListUiState
 import com.pokedex.pokemon_list_feature.viewModel.MainScreenIntent
 import com.pokedex.pokemon_list_feature.viewModel.MainScreenSideEffect
-import com.pokedex.pokemon_list_feature.viewModel.MainViewModel
+import com.pokedex.pokemon_list_feature.viewModel.PokemonListViewModel
 
 @Composable
-fun MainScreen(
-    viewModel: MainViewModel = daggerViewModel(),
+fun PokemonListScreen(
+    toPokemonDetails: (
+        id: PokemonId,
+        ids: List<PokemonId>
+    ) -> Unit,
+    viewModel: PokemonListViewModel = daggerViewModel(),
 ) {
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-
-    LaunchedEffect(Unit) {
-        viewModel.initialize()
-    }
+    val searchText by viewModel.searchText.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
         viewModel.sideEffect.collect { sideEffect ->
@@ -75,8 +79,9 @@ fun MainScreen(
         }
     }
 
-    MainScreenContent(
+    PokemonListScreenContent(
         uiState = uiState,
+        searchText = searchText,
         onFiltersButtonClick = {
             viewModel.handleIntent(MainScreenIntent.FiltersClick)
         },
@@ -86,26 +91,36 @@ fun MainScreen(
         onClearText = {
             viewModel.handleIntent(MainScreenIntent.ClearText)
         },
-        triggerNextPageLoading = {},
-        onCardClick = {}
+        onCardClick = { cardUiModel ->
+            toPokemonDetails.invoke(
+                cardUiModel.id,
+                uiState.getPokemonsItems().map { pokemon -> pokemon.id }
+            )
+        }
     )
 }
 
 @Composable
-private fun MainScreenContent(
-    uiState: MainScreenUiState,
+private fun PokemonListScreenContent(
+    uiState: PokemonListUiState,
+    searchText: String,
     onFiltersButtonClick: () -> Unit,
     onTextChange: (newText: String) -> Unit,
-    triggerNextPageLoading: () -> Unit,
     onClearText: () -> Unit,
     onCardClick: (item: PokemonCardUiModel) -> Unit,
 ) {
+    val lazyGridState = rememberSaveable(
+        searchText,
+        saver = LazyGridState.Saver
+    ) {
+        LazyGridState(0, 0)
+    }
+
     Scaffold(
         containerColor = AppTheme.identityColor().primary,
         topBar = {
             TopBar(
-                searchText = uiState.searchText,
-                filtersButtonClicked = uiState.isFiltersClicked,
+                searchText = searchText,
                 onFiltersButtonClick = onFiltersButtonClick,
                 onTextChange = onTextChange,
                 onClearText = onClearText
@@ -123,73 +138,101 @@ private fun MainScreenContent(
                     top = paddingValues.calculateTopPadding()
                 )
                 .background(
-                    color = AppTheme.grayscaleColor().white, shape = RoundedCornerShape(8.dp)
+                    color = AppTheme.grayscaleColor().white,
+                    shape = RoundedCornerShape(8.dp)
+                )
+                .padding(
+                    horizontal = 12.dp
                 )
         ) {
-            if (uiState.isLoading) {
-                val composition = rememberLottieComposition(
-                    spec = LottieCompositionSpec.RawRes(
-                        com.pokedex.compose_core.R.raw.pokeball_loading
-                    )
-                )
-                val progress by animateLottieCompositionAsState(
-                    composition = composition.value,
-                    iterations = LottieConstants.IterateForever
-                )
-
-                LottieAnimation(
-                    modifier = Modifier
-                        .aspectRatio(3f)
-                        .align(Alignment.Center),
-                    composition = composition.value,
-                    progress = { progress }
-                )
-            } else {
-                val state = rememberSaveable(
-                    uiState.searchText,
-                    saver = LazyGridState.Saver
-                ) {
-                    LazyGridState(0, 0)
-                }
-                val indexVisible = remember(
-                    uiState.searchText
-                ) {
-                    derivedStateOf { state.firstVisibleItemIndex }
-                }
-                LaunchedEffect(indexVisible.value) {
-                    if (indexVisible.value >= uiState.items.size / 3 - 3 && uiState.searchText.isEmpty()) {
-                        triggerNextPageLoading()
-                    }
-                }
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(3),
-                    state = state,
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(
-                        horizontal = 12.dp,
-                        vertical = 24.dp
-                    )
-                ) {
-                    items(
-                        count = uiState.items.size,
-                        key = {
-                            uiState.items[it].id
-                        },
+            when (uiState) {
+                PokemonListUiState.Empty -> {
+                    Column(
+                        modifier = Modifier.fillMaxSize()
                     ) {
-                        when (val item = uiState.items[it]) {
-                            is PokemonCardUiModel.PokemonSkeleton -> PokemonCardSmallSkeleton(
-                                pokemonSkeleton = item
+                        Box(
+                            modifier = Modifier.fillMaxWidth()
+                                .weight(0.15f)
+                        )
+
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                        ) {
+                            Text(
+                                modifier = Modifier
+                                    .align(Alignment.CenterHorizontally),
+                                text = stringResource(R.string.no_pokemon_title),
+                                style = AppTheme.headerTypography().headline,
+                                color = AppTheme.grayscaleColor().dark
                             )
 
-                            is PokemonCardUiModel.Pokemon -> PokemonCardSmall(
-                                model = item,
-                                onCardClick = {
-                                    onCardClick.invoke(item)
-                                }
+                            Spacer(
+                                modifier = Modifier.height(8.dp)
+                            )
+
+                            Text(
+                                modifier = Modifier.align(Alignment.CenterHorizontally),
+                                text = stringResource(R.string.no_pokemon_description),
+                                style = AppTheme.bodyTypography().body1,
+                                color = AppTheme.grayscaleColor().medium,
+                                textAlign = TextAlign.Center
                             )
                         }
                     }
+                }
+
+                is PokemonListUiState.ListLoaded -> {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(3),
+                        state = lazyGridState,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(
+                            vertical = 24.dp
+                        )
+                    ) {
+                        items(
+                            count = uiState.getPokemonsItems().size,
+                            key = {
+                                uiState.getPokemonsItems()[it].id.id
+                            },
+                        ) {
+                            when (val item = uiState.getPokemonsItems()[it]) {
+                                is PokemonCardUiModel.PokemonSkeleton -> PokemonCardSmallSkeleton(
+                                    pokemonSkeleton = item
+                                )
+
+                                is PokemonCardUiModel.Pokemon -> PokemonCardSmall(
+                                    model = item,
+                                    onCardClick = {
+                                        onCardClick.invoke(item)
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                PokemonListUiState.Loading -> {
+                    val composition = rememberLottieComposition(
+                        spec = LottieCompositionSpec.RawRes(
+                            ComposeCoreR.raw.pokeball_loading
+                        )
+                    )
+                    val progress by animateLottieCompositionAsState(
+                        composition = composition.value,
+                        iterations = LottieConstants.IterateForever
+                    )
+
+                    LottieAnimation(
+                        modifier = Modifier
+                            .aspectRatio(3f)
+                            .align(Alignment.Center),
+                        composition = composition.value,
+                        progress = { progress }
+                    )
                 }
             }
         }
@@ -199,11 +242,12 @@ private fun MainScreenContent(
 @Composable
 private fun TopBar(
     searchText: String,
-    filtersButtonClicked: Boolean,
     onFiltersButtonClick: () -> Unit,
     onTextChange: (newText: String) -> Unit,
     onClearText: () -> Unit,
 ) {
+    val isButtonClicked = rememberSaveable { mutableStateOf(false) }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -245,7 +289,7 @@ private fun TopBar(
             verticalAlignment = Alignment.CenterVertically
         ) {
             SearchField(
-                modifier = Modifier.Companion.weight(1f),
+                modifier = Modifier.weight(1f),
                 text = searchText,
                 onTextChanged = onTextChange,
                 onClearText = onClearText
@@ -256,8 +300,11 @@ private fun TopBar(
             )
 
             FiltersButton(
-                clicked = filtersButtonClicked,
-                onClick = onFiltersButtonClick
+                clicked = isButtonClicked.value,
+                onClick = {
+                    isButtonClicked.value = true
+                    onFiltersButtonClick.invoke()
+                }
             )
         }
     }
@@ -265,26 +312,55 @@ private fun TopBar(
 
 @Composable
 @Preview
-private fun MainScreenContentPreview() {
+private fun PokemonListScreenContentEmptyPreview() {
     AppTheme {
-        MainScreenContent(
-            uiState = MainScreenUiState(
-                isLoading = true,
+        PokemonListScreenContent(
+            uiState = PokemonListUiState.Empty,
+            searchText = "",
+            onFiltersButtonClick = {},
+            onTextChange = {},
+            onClearText = {},
+            onCardClick = {}
+        )
+    }
+}
+
+@Composable
+@Preview
+private fun PokemonListScreenContentLoadingPreview() {
+    AppTheme {
+        PokemonListScreenContent(
+            uiState = PokemonListUiState.Loading,
+            searchText = "",
+            onFiltersButtonClick = {},
+            onTextChange = {},
+            onClearText = {},
+            onCardClick = {}
+        )
+    }
+}
+
+@Composable
+@Preview
+private fun PokemonListScreenContentPreview() {
+    AppTheme {
+        PokemonListScreenContent(
+            uiState = PokemonListUiState.ListLoaded(
                 items = listOf(
                     PokemonCardUiModel.Pokemon(
-                        id = 1,
+                        id = PokemonId(1),
                         pokemonNumber = "1",
                         pokemonName = "name",
                         url = ""
                     ),
                     PokemonCardUiModel.Pokemon(
-                        id = 12,
+                        id = PokemonId(12),
                         pokemonNumber = "1",
                         pokemonName = "name",
                         url = ""
                     ),
                     PokemonCardUiModel.Pokemon(
-                        id = 13,
+                        id = PokemonId(13),
                         pokemonNumber = "1",
                         pokemonName = "name",
                         url = ""
@@ -295,7 +371,7 @@ private fun MainScreenContentPreview() {
             onTextChange = {},
             onClearText = {},
             onCardClick = {},
-            triggerNextPageLoading = {}
+            searchText = ""
         )
     }
 }

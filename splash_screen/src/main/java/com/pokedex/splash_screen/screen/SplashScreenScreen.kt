@@ -64,7 +64,7 @@ private fun SplashScreenContent(
         if (uiState is SplashScreenUiState.Ready) {
             val composition = rememberLottieComposition(
                 spec = LottieCompositionSpec.RawRes(
-                    com.pokedex.compose_core.R.raw.splash_long
+                    com.pokedex.compose_core.R.raw.splash_short
                 )
             )
             val progress by animateLottieCompositionAsState(

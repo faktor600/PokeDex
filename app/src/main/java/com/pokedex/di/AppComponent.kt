@@ -5,6 +5,8 @@ import com.pokedex.core.network.di.NetworkModule
 import com.pokedex.data_store.di.PokedexWelcomeDataStoreModule
 import com.pokedex.pokedex_welcome.di.PokedexWelcomeComponent
 import com.pokedex.pokedex_welcome.di.PokedexWelcomeComponentFactoryModule
+import com.pokedex.pokemon_details.di.PokemonDetailsComponent
+import com.pokedex.pokemon_details.di.PokemonDetailsComponentFactoryModule
 import com.pokedex.pokemon_list_feature.di.MainScreenComponentFactoryModule
 import com.pokedex.pokemon_list_feature.di.MainScreenComponent
 import com.pokedex.splash_screen.di.SplashScreenComponent
@@ -21,12 +23,15 @@ import javax.inject.Singleton
         PokedexWelcomeComponentFactoryModule::class,
         ActivityComponentComponentFactoryModule::class,
         SplashScreenComponentFactoryModule::class,
+        PokemonDetailsComponentFactoryModule::class,
         AppContextModule::class,
         ChuckerModule::class,
         DatabaseModule::class
     ]
 )
 interface AppComponent {
+
+    fun pokemonDetailsComponentFactory(): PokemonDetailsComponent.Factory
 
     fun splashScreenComponentFactory(): SplashScreenComponent.Factory
 

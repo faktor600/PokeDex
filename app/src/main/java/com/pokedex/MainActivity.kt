@@ -8,7 +8,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
@@ -18,7 +17,9 @@ import com.pokedex.compose_core.provider.LocalComponentFactoryMapProvider
 import com.pokedex.compose_core.theme.AppTheme
 import com.pokedex.pokedex_welcome.route.PokedexWelcomeEntryProvider
 import com.pokedex.pokedex_welcome.route.PokedexWelcomeScreenRoute
-import com.pokedex.pokemon_list_feature.route.MainScreenNavProvider
+import com.pokedex.pokemon_details.route.PokemonDetailsRoute
+import com.pokedex.pokemon_details.route.PokemonDetailsScreenNavProvider
+import com.pokedex.pokemon_list_feature.route.PokemonListScreenNavProvider
 import com.pokedex.pokemon_list_feature.route.MainScreenRoute
 import com.pokedex.splash_screen.route.SplashScreenEntryProvider
 import com.pokedex.splash_screen.route.SplashScreenScreenRoute
@@ -35,7 +36,7 @@ class MainActivity : ComponentActivity() {
                 CompositionLocalProvider(
                     LocalComponentFactoryMapProvider provides (applicationContext as App).appComponent.factoriesProvider(),
                 ) {
-                    MainActivityScreen()
+                    MainActivityContainer()
                 }
             }
         }
@@ -43,13 +44,17 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun MainActivityScreen(
+private fun MainActivityContainer(
     viewModel: MainActivityViewModel = daggerViewModel()
 ) {
     val backStack = remember { mutableStateListOf<NavKey>(SplashScreenScreenRoute) }
 
     val entryProvider: ((NavKey) -> NavEntry<NavKey>) = entryProvider {
-        MainScreenNavProvider()
+        PokemonListScreenNavProvider(
+            toPokemonDetails = { id, ids ->
+                backStack.add(PokemonDetailsRoute(id, ids))
+            }
+        )
         PokedexWelcomeEntryProvider(
             navigateToList = {
                 backStack[backStack.lastIndex] = MainScreenRoute
@@ -61,6 +66,11 @@ private fun MainActivityScreen(
             },
             navigateToPokemonList = {
                 backStack[backStack.lastIndex] = MainScreenRoute
+            }
+        )
+        PokemonDetailsScreenNavProvider(
+            onBackClick = {
+                backStack.removeLastOrNull()
             }
         )
     }

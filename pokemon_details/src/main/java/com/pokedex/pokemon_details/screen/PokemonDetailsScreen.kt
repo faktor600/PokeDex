@@ -1,5 +1,12 @@
 package com.pokedex.pokemon_details.screen
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -10,115 +17,250 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.visible
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.pokedex.compose_core.R as ComposeCoreR
 import com.pokedex.compose_core.common.PokemonTypePresentationModel
 import com.pokedex.compose_core.components.PokemonTypeChip
+import com.pokedex.compose_core.di.daggerViewModel
 import com.pokedex.compose_core.theme.AppTheme
+import com.pokedex.core.domain.model.PokemonId
 import com.pokedex.pokemon_details.R
+import com.pokedex.pokemon_details.composables.StatBar
+import com.pokedex.pokemon_details.route.PokemonDetailsRoute
+import com.pokedex.pokemon_details.state.PokemonDetails
 import com.pokedex.pokemon_details.state.PokemonDetailsUiState
+import com.pokedex.pokemon_details.viewmodel.PokemonDetailsViewModel
+import kotlin.math.roundToInt
 
 @Composable
-internal fun PokemonDetailsScreen() {
+internal fun PokemonDetailsScreen(
+    onBackClick: () -> Unit,
+    route: PokemonDetailsRoute,
+    viewModel: PokemonDetailsViewModel = daggerViewModel(),
+) {
+
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) {
+        viewModel.initialize(route)
+    }
 
     PokemonDetailsScreenContent(
-        uiState = PokemonDetailsUiState(),
-        onBackClick = {}
+        uiStateMain = uiState,
+        onBackClick = onBackClick,
+        leftClick = viewModel::onPrevClick,
+        rightClick = viewModel::onNextClick
     )
 }
 
 @Composable
 private fun PokemonDetailsScreenContent(
-    uiState: PokemonDetailsUiState,
-    onBackClick: () -> Unit
+    uiStateMain: PokemonDetailsUiState,
+    leftClick: () -> Unit,
+    rightClick: () -> Unit,
+    onBackClick: () -> Unit,
 ) {
-    Scaffold(
-        topBar = {
-            TopBar(
-                pokemonName = uiState.pokemonName,
-                pokemonNumber = uiState.pokemonNumber,
-                onBackClick = onBackClick
-            )
-        },
-        containerColor = if (uiState.pokemonTypeMain == PokemonTypePresentationModel.Unknown) {
-            AppTheme.grayscaleColor().whireframe
-        } else {
-            uiState.pokemonTypeMain.color
-        }
-    ) { contentPadding ->
-        Box(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            Column(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                ) {
-                    Icon(
-                        modifier = Modifier
-                            .padding(
-                                top = 4.dp,
-                                end = 4.dp,
-                                bottom = 8.dp
-                            ).aspectRatio(
-                                ratio = 1f,
-                                matchHeightConstraintsFirst = true
-                            )
-                            .align(Alignment.TopEnd),
-                        painter = painterResource(ComposeCoreR.drawable.ic_pokeball),
-                        contentDescription = null,
-                        tint = AppTheme.grayscaleColor().white.copy(
-                            alpha = 0.1f
-                        )
-                    )
+    var lastKnownId by remember { mutableStateOf(uiStateMain.currentPokemonById) }
+    val details = uiStateMain.pokemonMap[lastKnownId] as? PokemonDetails.Loaded
+    SharedTransitionLayout {
+        AnimatedContent(
+            modifier = Modifier.background(
+                color = if (details?.pokemonTypeMain == PokemonTypePresentationModel.Unknown) {
+                    AppTheme.grayscaleColor().whireframe
+                } else {
+                    details?.pokemonTypeMain?.color ?: Color.Transparent
                 }
-
-                Content(
-                    modifier = Modifier
-                        .weight(2.85f)
-                        .fillMaxSize()
-                        .padding(
-                            horizontal = 4.dp,
-                        ).padding(
-                            bottom = 4.dp + contentPadding.calculateBottomPadding(),
-                        ).background(
-                            color = AppTheme.grayscaleColor().white,
-                            shape = RoundedCornerShape(8.dp)
-                        ),
-                    uiState = uiState
-                )
+            ),
+            targetState = uiStateMain.currentPokemonById,
+            transitionSpec = {
+                if (lastKnownId.id < uiStateMain.currentPokemonById.id) {
+                    slideIntoContainer(
+                        towards = AnimatedContentTransitionScope.SlideDirection.Left,
+                        animationSpec = spring(stiffness = Spring.StiffnessLow)
+                    ) togetherWith slideOutOfContainer(
+                        towards = AnimatedContentTransitionScope.SlideDirection.Left,
+                        animationSpec = spring(stiffness = Spring.StiffnessMedium)
+                    )
+                } else {
+                    slideIntoContainer(
+                        towards = AnimatedContentTransitionScope.SlideDirection.Right,
+                        animationSpec = spring(stiffness = Spring.StiffnessLow)
+                    ) togetherWith slideOutOfContainer(
+                        towards = AnimatedContentTransitionScope.SlideDirection.Right,
+                        animationSpec = spring(stiffness = Spring.StiffnessMedium)
+                    )
+                }.also {
+                    lastKnownId = uiStateMain.currentPokemonById
+                } using SizeTransform(clip = false)
             }
+        ) { id ->
+            val uiState = (uiStateMain.pokemonMap[id] as? PokemonDetails.Loaded) ?: PokemonDetails.Loaded()
+            Scaffold(
+                topBar = {
+                    TopBar(
+                        modifier = Modifier.sharedElement(
+                            sharedContentState = rememberSharedContentState("top"),
+                            animatedVisibilityScope = this@AnimatedContent
+                        ),
+                        pokemonName = uiState.pokemonName,
+                        pokemonNumber = uiState.pokemonNumber,
+                        onBackClick = onBackClick
+                    )
+                },
+                contentColor = if (uiState.pokemonTypeMain == PokemonTypePresentationModel.Unknown) {
+                    AppTheme.grayscaleColor().whireframe
+                } else {
+                    uiState.pokemonTypeMain.color
+                }
+            ) { contentPadding ->
 
-            ImageWithScroll(
-                modifier = Modifier.padding(
-                    top = contentPadding.calculateTopPadding()
-                ),
-                imageUrl = uiState.pokemonImageUrl
-            )
+                val paddingTopStatusBar = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+
+                Box(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize().background(
+                            if (uiState.pokemonTypeMain == PokemonTypePresentationModel.Unknown) {
+                                AppTheme.grayscaleColor().whireframe
+                            } else {
+                                uiState.pokemonTypeMain.color
+                            }
+                        ).sharedElement(
+                            sharedContentState = rememberSharedContentState("background"),
+                            animatedVisibilityScope = this@AnimatedContent
+                        ),
+                    )
+                    SubcomposeLayout(
+                        modifier = Modifier
+                    ) { constraints ->
+                        val imagePokemon = subcompose("image") {
+                            ImageWithScroll(
+                                modifier = Modifier.sharedElement(
+                                    sharedContentState = rememberSharedContentState("image"),
+                                    animatedVisibilityScope = this@AnimatedContent,
+                                    zIndexInOverlay = 1000f
+                                ),
+                                imageUrl = uiState.pokemonImageUrl,
+                                leftClick = leftClick,
+                                rightClick = rightClick,
+                                chevroneRightVisible = uiStateMain.isNextVisible,
+                                chevroneLeftVisibility = uiStateMain.isPrevVisible
+                            )
+                        }.first().measure(constraints)
+
+                        val contentWithTopBarPaddingTop = contentPadding.calculateTopPadding().roundToPx()
+
+                        val yPositionContent = imagePokemon.measuredHeight * 0.78 + contentWithTopBarPaddingTop
+
+                        val paddingTopForTypes = (imagePokemon.measuredHeight * 0.23f).toDp() + 12.dp
+
+                        val maxWidthForPokeballIcon = (constraints.maxWidth * 0.57).roundToInt()
+
+                        val icon = subcompose("pokeball") {
+                            Icon(
+                                modifier = Modifier
+                                    .aspectRatio(
+                                        ratio = 1f
+                                    ).sharedElement(
+                                        sharedContentState = rememberSharedContentState("pokeball"),
+                                        animatedVisibilityScope = this@AnimatedContent
+                                    ),
+                                painter = painterResource(ComposeCoreR.drawable.ic_pokeball),
+                                contentDescription = null,
+                                tint = AppTheme.grayscaleColor().white.copy(
+                                    alpha = 0.1f
+                                )
+                            )
+                        }.first().measure(
+                            constraints.copy(
+                                maxHeight = constraints.maxHeight,
+                                maxWidth = maxWidthForPokeballIcon
+                            )
+                        )
+
+                        val content = subcompose("content") {
+                            Content(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(
+                                        horizontal = 4.dp,
+                                    )
+                                    .padding(
+                                        bottom = 4.dp + contentPadding.calculateBottomPadding(),
+                                    )
+                                    .background(
+                                        color = AppTheme.grayscaleColor().white,
+                                        shape = RoundedCornerShape(8.dp)
+                                    ),
+                                uiState = uiState,
+                                paddingForTypes = paddingTopForTypes
+                            )
+                        }.first().measure(constraints)
+
+                        layout(constraints.maxWidth, constraints.maxHeight) {
+                            icon.place(
+                                position = IntOffset(
+                                    y = paddingTopStatusBar.roundToPx(),
+                                    x = constraints.maxWidth - maxWidthForPokeballIcon - 8.dp.roundToPx()
+                                )
+                            )
+
+                            content.place(
+                                position = IntOffset(
+                                    y = yPositionContent.roundToInt(),
+                                    x = 0
+                                )
+                            )
+
+                            imagePokemon.place(
+                                position = IntOffset(
+                                    y = contentWithTopBarPaddingTop,
+                                    x = 0
+                                )
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -126,7 +268,11 @@ private fun PokemonDetailsScreenContent(
 @Composable
 private fun ImageWithScroll(
     modifier: Modifier = Modifier,
-    imageUrl: String
+    leftClick: () -> Unit,
+    rightClick: () -> Unit,
+    chevroneRightVisible: Boolean,
+    chevroneLeftVisibility: Boolean,
+    imageUrl: String,
 ) {
     Row(
         modifier = modifier,
@@ -138,7 +284,8 @@ private fun ImageWithScroll(
         )
 
         Icon(
-            modifier = Modifier.size(32.dp),
+            modifier = Modifier.size(32.dp).clickable(onClick = leftClick).
+            visible(chevroneLeftVisibility),
             painter = painterResource(ComposeCoreR.drawable.ic_chevron_left),
             contentDescription = null,
             tint = AppTheme.grayscaleColor().white,
@@ -156,6 +303,7 @@ private fun ImageWithScroll(
             placeholder = painterResource(ComposeCoreR.drawable.pokemon_placeholder),
             error = painterResource(ComposeCoreR.drawable.pokemon_placeholder),
             fallback = painterResource(ComposeCoreR.drawable.pokemon_placeholder),
+            contentScale = ContentScale.FillBounds,
             contentDescription = null
         )
 
@@ -164,7 +312,7 @@ private fun ImageWithScroll(
         )
 
         Icon(
-            modifier = Modifier.size(32.dp),
+            modifier = Modifier.size(32.dp).clickable(onClick = rightClick).visible(chevroneRightVisible),
             painter = painterResource(ComposeCoreR.drawable.ic_chevron_right),
             contentDescription = null,
             tint = AppTheme.grayscaleColor().white,
@@ -179,7 +327,8 @@ private fun ImageWithScroll(
 @Composable
 private fun Content(
     modifier: Modifier = Modifier,
-    uiState: PokemonDetailsUiState
+    paddingForTypes: Dp,
+    uiState: PokemonDetails.Loaded,
 ) {
     Box(
         modifier = modifier
@@ -187,12 +336,13 @@ private fun Content(
                 color = AppTheme.grayscaleColor().white, shape = RoundedCornerShape(8.dp)
             )
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
     ) {
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
             Spacer(
-                modifier = Modifier.height(86.dp)
+                modifier = Modifier.height(paddingForTypes)
             )
 
             TypeRow(
@@ -243,7 +393,110 @@ private fun Content(
                 style = AppTheme.headerTypography().subtitle1,
                 color = uiState.pokemonTypeMain.color
             )
+
+            Spacer(
+                modifier = Modifier.height(16.dp)
+            )
+
+            StatRow(
+                statValue = uiState.statHp,
+                pokemonTypePresentationModel = uiState.pokemonTypeMain,
+                statName = stringResource(R.string.stat_hp)
+            )
+
+            StatRow(
+                statValue = uiState.statAtk,
+                pokemonTypePresentationModel = uiState.pokemonTypeMain,
+                statName = stringResource(R.string.stat_atk)
+            )
+
+            StatRow(
+                statValue = uiState.statDef,
+                pokemonTypePresentationModel = uiState.pokemonTypeMain,
+                statName = stringResource(R.string.stat_def)
+            )
+
+            StatRow(
+                statValue = uiState.statSAtk,
+                pokemonTypePresentationModel = uiState.pokemonTypeMain,
+                statName = stringResource(R.string.stat_satk)
+            )
+
+            StatRow(
+                statValue = uiState.statSDef,
+                pokemonTypePresentationModel = uiState.pokemonTypeMain,
+                statName = stringResource(R.string.stat_sdef)
+            )
+
+            StatRow(
+                statValue = uiState.statSpd,
+                pokemonTypePresentationModel = uiState.pokemonTypeMain,
+                statName = stringResource(R.string.stat_spd)
+            )
         }
+    }
+}
+
+@Composable
+private fun ColumnScope.StatRow(
+    statValue: Int,
+    pokemonTypePresentationModel: PokemonTypePresentationModel,
+    statName: String,
+) {
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .align(Alignment.CenterHorizontally)
+            .padding(
+                horizontal = 20.dp
+            )
+            .height(IntrinsicSize.Min),
+    ) {
+        Text(
+            modifier = Modifier.weight(0.1f),
+            text = statName,
+            style = AppTheme.headerTypography().subtitle3,
+            color = pokemonTypePresentationModel.color,
+            textAlign = TextAlign.End,
+            maxLines = 1
+        )
+
+        Spacer(
+            modifier = Modifier.width(12.dp)
+        )
+
+        VerticalDivider(
+            color = AppTheme.grayscaleColor().light
+        )
+
+        Spacer(
+            modifier = Modifier.width(12.dp)
+        )
+
+        Text(
+            modifier = Modifier.weight(0.1f),
+            text = if (statValue.toString().length == 3) {
+                statValue.toString()
+            } else {
+                "0${statValue}"
+            },
+            style = AppTheme.bodyTypography().body3,
+            color = AppTheme.grayscaleColor().dark,
+            textAlign = TextAlign.End
+        )
+
+        Spacer(
+            modifier = Modifier.width(8.dp)
+        )
+
+        StatBar(
+            modifier = Modifier
+                .align(Alignment.CenterVertically)
+                .weight(1f),
+            pokemonTypePresentationModel = pokemonTypePresentationModel,
+            statValue = statValue
+        )
     }
 }
 
@@ -264,10 +517,11 @@ private fun ColumnScope.TypeRow(pokemonTypes: Set<PokemonTypePresentationModel>)
 
 @Composable
 private fun AboutRow(
-    uiState: PokemonDetailsUiState
+    uiState: PokemonDetails.Loaded,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
             .height(IntrinsicSize.Min)
     ) {
         Spacer(
@@ -432,15 +686,19 @@ private fun RowScope.MovesItem(
 
 @Composable
 private fun TopBar(
+    modifier: Modifier = Modifier,
     pokemonName: String,
     pokemonNumber: String,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
 ) {
     Row(
-        modifier = Modifier.padding(
-            top = 24.dp,
-            bottom = 24.dp
-        ),
+        modifier = modifier
+            .padding(
+                top = 24.dp, bottom = 24.dp
+            )
+            .padding(
+                top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+            ),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Spacer(
@@ -486,24 +744,55 @@ private fun TopBar(
 }
 
 @Composable
-@Preview
+@Preview(device = "id:Nexus S")
 private fun PokemonDetailsScreenContentPreview() {
     AppTheme {
         PokemonDetailsScreenContent(
-            uiState = PokemonDetailsUiState(
-                pokemonName = "Pokémon Name",
-                pokemonNumber = "#999",
-                pokemonImageUrl = "",
-                weight = "6,9 kg",
-                height = "0,7 m",
-                moves = listOf(
-                    "Chlorophyll", "Overgrow"
+            uiStateMain = PokemonDetailsUiState(
+                pokemonMap = mapOf(
+                    PokemonId(1) to PokemonDetails.Loaded(
+                        pokemonName = "Pokémon Name",
+                        pokemonNumber = "#999",
+                        pokemonImageUrl = "",
+                        weight = "6,9 kg",
+                        height = "0,7 m",
+                        statHp = 45,
+                        statAtk = 49,
+                        statDef = 49,
+                        statSpd = 45,
+                        statSAtk = 65,
+                        statSDef = 65,
+                        moves = listOf(
+                            "Chlorophyll", "Overgrow"
+                        ),
+                        description = "There is a plant seed on its back right from the day this Pokémon is born. The seed slowly grows larger.",
+                        pokemonTypeMain = PokemonTypePresentationModel.Grass,
+                        pokemonTypes = setOf(PokemonTypePresentationModel.Grass, PokemonTypePresentationModel.Poison)
+                    )
                 ),
-                description = "There is a plant seed on its back right from the day this Pokémon is born. The seed slowly grows larger.",
-                pokemonTypeMain = PokemonTypePresentationModel.Bug,
-                pokemonTypes = setOf(PokemonTypePresentationModel.Grass, PokemonTypePresentationModel.Poison)
+                currentPokemonById = PokemonId(1)
             ),
-            onBackClick = {}
+            onBackClick = {},
+            rightClick = {},
+            leftClick = {}
+        )
+    }
+}
+
+@Composable
+@Preview(device = "id:Nexus S")
+private fun PokemonDetailsScreenContentLoadingPreview() {
+    AppTheme {
+        PokemonDetailsScreenContent(
+            uiStateMain = PokemonDetailsUiState(
+                pokemonMap = mapOf(
+                    PokemonId(1) to PokemonDetails.Loading
+                ),
+                currentPokemonById = PokemonId(1)
+            ),
+            onBackClick = {},
+            rightClick = {},
+            leftClick = {}
         )
     }
 }

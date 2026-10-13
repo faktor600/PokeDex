@@ -167,6 +167,14 @@ sealed class PokemonTypePresentationModel(
         override val color: Color get() = AppTheme.pokemonTypeColor().stellar
     }
 
+    object Shadow : PokemonTypePresentationModel(
+        type = PokemonTypeEnum.SHADOW,
+        name = TextUiModel(R.string.pokemon_type_name_shadow)
+    ) {
+        @get:Composable
+        override val color: Color get() = AppTheme.pokemonTypeColor().shadow
+    }
+
     object Unknown : PokemonTypePresentationModel(
         type = PokemonTypeEnum.UNKNOWN,
         name = TextUiModel(R.string.pokemon_type_name_unknown)
@@ -174,4 +182,28 @@ sealed class PokemonTypePresentationModel(
         @get:Composable
         override val color: Color get() = AppTheme.grayscaleColor().medium
     }
+}
+
+fun PokemonTypeEnum.toPresentationModel(): PokemonTypePresentationModel = when (this) {
+    PokemonTypeEnum.NORMAL -> PokemonTypePresentationModel.Normal
+    PokemonTypeEnum.FIGHTING -> PokemonTypePresentationModel.Fighting
+    PokemonTypeEnum.FLYING -> PokemonTypePresentationModel.Flying
+    PokemonTypeEnum.POISON -> PokemonTypePresentationModel.Poison
+    PokemonTypeEnum.GROUND -> PokemonTypePresentationModel.Ground
+    PokemonTypeEnum.ROCK -> PokemonTypePresentationModel.Rock
+    PokemonTypeEnum.BUG -> PokemonTypePresentationModel.Bug
+    PokemonTypeEnum.GHOST -> PokemonTypePresentationModel.Ghost
+    PokemonTypeEnum.STEEL -> PokemonTypePresentationModel.Steel
+    PokemonTypeEnum.FIRE -> PokemonTypePresentationModel.Fire
+    PokemonTypeEnum.WATER -> PokemonTypePresentationModel.Water
+    PokemonTypeEnum.GRASS -> PokemonTypePresentationModel.Grass
+    PokemonTypeEnum.ELECTRIC -> PokemonTypePresentationModel.Electric
+    PokemonTypeEnum.PSYCHIC -> PokemonTypePresentationModel.Psychic
+    PokemonTypeEnum.ICE -> PokemonTypePresentationModel.Ice
+    PokemonTypeEnum.DRAGON -> PokemonTypePresentationModel.Dragon
+    PokemonTypeEnum.DARK -> PokemonTypePresentationModel.Dark
+    PokemonTypeEnum.FAIRY -> PokemonTypePresentationModel.Fairy
+    PokemonTypeEnum.STELLAR -> PokemonTypePresentationModel.Stellar
+    PokemonTypeEnum.SHADOW -> PokemonTypePresentationModel.Shadow
+    PokemonTypeEnum.UNKNOWN -> PokemonTypePresentationModel.Unknown
 }

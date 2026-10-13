@@ -1,6 +1,5 @@
 package com.pokedex.core_database.database
 
-import androidx.room3.ColumnTypeConverters
 import androidx.room3.Database
 import androidx.room3.RoomDatabase
 import com.pokedex.api_pokemon.dao.PokemonDao

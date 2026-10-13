@@ -1,5 +1,8 @@
 package com.pokedex.core
 
+import java.util.logging.Level
+import java.util.logging.Logger
+
 enum class PokemonTypeEnum {
     NORMAL,
     FIGHTING,
@@ -22,4 +25,15 @@ enum class PokemonTypeEnum {
     STELLAR,
     SHADOW,
     UNKNOWN
+}
+
+fun PokemonTypeEnum.asStringBackend() = name.lowercase()
+
+fun String.getTypeEnum() = try {
+    PokemonTypeEnum.valueOf(this.uppercase())
+} catch (e: Exception) {
+    Logger.getGlobal().log(
+        Level.WARNING, e.message
+    )
+    PokemonTypeEnum.UNKNOWN
 }

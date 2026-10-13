@@ -1,6 +1,7 @@
 package com.pokedex.api_pokemon.data.api
 
 import com.pokedex.api_pokemon.data.response.PokemonResponse
+import com.pokedex.core.domain.model.PokemonId
 import com.pokedex.core.network.models.PaginationResponse
 import okhttp3.ResponseBody
 import retrofit2.Response
@@ -17,8 +18,11 @@ interface PokemonApi {
     suspend fun getNextPokemonPagination(@Url url: String): Response<PaginationResponse>
 
     @GET("pokemon/{id}")
-    suspend fun getSinglePokemon(@Path("id") id: Long): Response<PokemonResponse>
+    suspend fun getSinglePokemon(@Path("id") id: PokemonId): Response<PokemonResponse>
+
+    @GET("pokemon/{id}")
+    suspend fun getSinglePokemonRaw(@Path("id") id: PokemonId): Response<ResponseBody>
 
     @GET
-    suspend fun getSinglePokemonRaw(@Url url: String): Response<ResponseBody>
+    suspend fun getSpeciesByUrl(@Url url: String): Response<ResponseBody>
 }

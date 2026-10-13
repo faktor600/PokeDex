@@ -1,5 +1,6 @@
 package com.pokedex.api_pokemon.data.response
 
+import com.pokedex.core.domain.model.PokemonId
 import com.pokedex.core.network.models.ItemWithUrlResponse
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -7,10 +8,13 @@ import kotlinx.serialization.Serializable
 @Serializable
 class PokemonResponse(
     @SerialName("id")
-    val id: Long,
+    val id: PokemonId,
 
     @SerialName("name")
     val name: String,
+
+    @SerialName("weight")
+    val weight: Int,
 
     @SerialName("base_experience")
     val baseExperience: Int?,
@@ -39,8 +43,23 @@ class PokemonResponse(
     @SerialName("stats")
     val stats: List<StatEntry>,
 
+    @SerialName("types")
+    val types: List<TypeEntry>,
+
     @SerialName("sprites")
-    val sprites: PokemonSprites
+    val sprites: PokemonSprites,
+
+    @SerialName("species")
+    val species: ItemWithUrlResponse
+)
+
+@Serializable
+data class TypeEntry(
+    @SerialName("slot")
+    val slot: Int,
+
+    @SerialName("type")
+    val type: ItemWithUrlResponse
 )
 
 @Serializable

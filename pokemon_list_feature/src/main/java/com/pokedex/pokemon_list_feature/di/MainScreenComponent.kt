@@ -4,7 +4,7 @@ import com.pokedex.api_pokemon.domain.di.PokemonApiModule
 import com.pokedex.core.di.ComponentFactory
 import com.pokedex.core.di.ComponentWithViewModel
 import com.pokedex.core.di.ConcreteComponentFactory
-import com.pokedex.pokemon_list_feature.viewModel.MainViewModel
+import com.pokedex.pokemon_list_feature.viewModel.PokemonListViewModel
 import dagger.Binds
 import dagger.Module
 import dagger.Subcomponent
@@ -16,7 +16,7 @@ import dagger.multibindings.IntoMap
         PokemonApiModule::class,
     ]
 )
-interface MainScreenComponent: ComponentWithViewModel<MainViewModel> {
+interface MainScreenComponent: ComponentWithViewModel<PokemonListViewModel> {
 
     @Subcomponent.Factory
     interface Factory: ComponentFactory<MainScreenComponent>
@@ -27,6 +27,6 @@ abstract class MainScreenComponentFactoryModule {
 
     @Binds
     @IntoMap
-    @ClassKey(MainViewModel::class)
+    @ClassKey(PokemonListViewModel::class)
     internal abstract fun bindMainScreenProvider(provider: MainScreenComponent.Factory): ConcreteComponentFactory
 }

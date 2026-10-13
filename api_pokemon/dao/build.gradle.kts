@@ -14,6 +14,8 @@ kotlin {
 }
 
 dependencies {
+    implementation(project(":core"))
+
     implementation(libs.room)
     ksp(libs.room.ksp)
 }

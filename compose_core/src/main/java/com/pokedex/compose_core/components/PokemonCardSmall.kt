@@ -24,6 +24,7 @@ import com.pokedex.compose_core.R
 import com.pokedex.compose_core.common.dropShadow2dp
 import com.pokedex.compose_core.models.PokemonCardUiModel
 import com.pokedex.compose_core.theme.AppTheme
+import com.pokedex.core.domain.model.PokemonId
 
 @Composable
 fun PokemonCardSmall(
@@ -166,7 +167,7 @@ private fun PokemonCardSmallSkeletonPreview() {
         PokemonCardSmallSkeleton(
             pokemonSkeleton = PokemonCardUiModel.PokemonSkeleton(
                 pokemonName = "Pokémon Name",
-                id = 13
+                id = PokemonId(13)
             )
         )
     }
@@ -184,7 +185,7 @@ private fun PokemonCardSmallPreview() {
                 pokemonNumber = "#999",
                 pokemonName = "Pokémon Name",
                 url = "",
-                id = 12
+                id = PokemonId(12)
             ),
             onCardClick = {}
         )

@@ -7,4 +7,11 @@
     <string name="moves_details">Moves</string>
     
     <string name="base_stats_title">Base Stats</string>
+    
+    <string name="stat_hp">HP</string>
+    <string name="stat_atk">ATK</string>
+    <string name="stat_def">DEF</string>
+    <string name="stat_satk">SATK</string>
+    <string name="stat_sdef">SDEF</string>
+    <string name="stat_spd">SPD</string>
 </resources>

@@ -21,6 +21,7 @@
     <string name="pokemon_type_name_dark">Dark</string>
     <string name="pokemon_type_name_fairy">Fairy</string>
     <string name="pokemon_type_name_stellar">Stellar</string>
+    <string name="pokemon_type_name_shadow">Shadow</string>
     <string name="pokemon_type_name_unknown">Unknown</string>
     
     <string name="app_header_description">YOUR POKÉMON COMPANION</string>

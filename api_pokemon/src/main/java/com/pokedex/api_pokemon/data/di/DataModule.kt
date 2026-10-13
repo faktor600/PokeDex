@@ -4,6 +4,7 @@ import com.pokedex.api_pokemon.data.PokemonRepositoryImpl
 import com.pokedex.api_pokemon.domain.PokemonRepository
 import dagger.Binds
 import dagger.Module
+import javax.inject.Singleton
 
 @Module(
     includes = [

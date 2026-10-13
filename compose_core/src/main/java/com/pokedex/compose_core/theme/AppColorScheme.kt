@@ -48,7 +48,8 @@ class PokemonTypeColor(
     val rock: Color = Color(0xFFB69E31),
     val steel: Color = Color(0xFFB7B9D0),
     val water: Color = Color(0xFF6493EB),
-    val stellar: Color = Color(0xFF40B5A5)
+    val stellar: Color = Color(0xFF40B5A5),
+    val shadow: Color = Color(0xFF472E63)
 )
 
 @Immutable

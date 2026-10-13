@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="main_screen_top_bar">Pokédex</string>
+    
+    <string name="no_pokemon_title">No Pokémon Found</string>
+    <string name="no_pokemon_description">Try searching for a different name or number to find your favorite Pokémon.</string>
 </resources>

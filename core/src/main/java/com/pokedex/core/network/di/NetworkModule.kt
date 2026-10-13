@@ -20,10 +20,10 @@ class NetworkModule {
     fun okHttpClient(
         @Named("chucker") interceptor: Interceptor
     ) = OkHttpClient
-        .Builder()
+        .Builder()/*
         .addInterceptor(HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.HEADERS
-        })
+        })*/
         .addInterceptor(interceptor)
         .build()
 
