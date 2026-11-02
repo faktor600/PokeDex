@@ -16,7 +16,7 @@ interface SplashScreenComponent: ComponentWithViewModel<SplashScreenViewModel> {
     interface Factory: ComponentFactory<SplashScreenComponent>
 }
 
-@Module
+@Module(subcomponents = [SplashScreenComponent::class])
 abstract class SplashScreenComponentFactoryModule {
 
     @Binds

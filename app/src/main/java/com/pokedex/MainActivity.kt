@@ -5,7 +5,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.navigation3.runtime.NavEntry
@@ -13,7 +12,6 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import com.pokedex.compose_core.di.daggerViewModel
-import com.pokedex.compose_core.provider.LocalComponentFactoryMapProvider
 import com.pokedex.compose_core.theme.AppTheme
 import com.pokedex.pokedex_welcome.route.PokedexWelcomeEntryProvider
 import com.pokedex.pokedex_welcome.route.PokedexWelcomeScreenRoute
@@ -33,11 +31,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             AppTheme {
-                CompositionLocalProvider(
-                    LocalComponentFactoryMapProvider provides (applicationContext as App).appComponent.factoriesProvider(),
-                ) {
-                    MainActivityContainer()
-                }
+                MainActivityContainer()
             }
         }
     }

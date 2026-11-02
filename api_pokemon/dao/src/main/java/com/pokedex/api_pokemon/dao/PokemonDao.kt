@@ -13,7 +13,10 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface PokemonDao {
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    /**
+     * Inserts stub rows. Existing rows (possibly already fully loaded) are kept untouched.
+     */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertPokemons(items: List<PokemonEntity>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -22,9 +25,14 @@ interface PokemonDao {
     @Query("SELECT * FROM $POKEMON_TABLE_NAME")
     fun getAll(): Flow<List<PokemonEntity>>
 
-    @Query("SELECT * FROM $POKEMON_TABLE_NAME WHERE id = :id OR $POKEMON_NAME LIKE :name || '%'")
-    suspend fun getPokemon(id: Long?, name: String?): PokemonEntity?
+    @Query("SELECT * FROM $POKEMON_TABLE_NAME WHERE id = :id")
+    suspend fun getById(id: Long): PokemonEntity?
 
-    @Query("SELECT * FROM $POKEMON_TABLE_NAME WHERE id = :text OR $POKEMON_NAME LIKE :text || '%'")
-    fun searchForPokemons(text: String): Flow<List<PokemonEntity>>
+    /**
+     * [likePattern] must already be escaped with `\` for `%` and `_`.
+     */
+    @Query(
+        "SELECT * FROM $POKEMON_TABLE_NAME WHERE id = :id OR $POKEMON_NAME LIKE :likePattern || '%' ESCAPE '\\'"
+    )
+    fun searchForPokemons(id: Long?, likePattern: String): Flow<List<PokemonEntity>>
 }

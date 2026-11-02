@@ -22,7 +22,7 @@ interface MainScreenComponent: ComponentWithViewModel<PokemonListViewModel> {
     interface Factory: ComponentFactory<MainScreenComponent>
 }
 
-@Module
+@Module(subcomponents = [MainScreenComponent::class])
 abstract class MainScreenComponentFactoryModule {
 
     @Binds

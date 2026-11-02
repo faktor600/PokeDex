@@ -21,7 +21,7 @@ interface PokedexWelcomeComponent: ComponentWithViewModel<PokedexWelcomeViewMode
     interface Factory: ComponentFactory<PokedexWelcomeComponent>
 }
 
-@Module
+@Module(subcomponents = [PokedexWelcomeComponent::class])
 abstract class PokedexWelcomeComponentFactoryModule {
 
     @Binds

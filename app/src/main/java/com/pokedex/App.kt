@@ -5,13 +5,18 @@ import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
 import coil3.util.DebugLogger
+import com.pokedex.core.di.ComponentFactoryMapOwner
+import com.pokedex.core.di.ConcreteComponentFactory
 import com.pokedex.di.AppComponent
 import com.pokedex.di.AppContextModule
 import com.pokedex.di.DaggerAppComponent
 
-internal class App: Application()/*, SingletonImageLoader.Factory*/ {
+internal class App: Application(), ComponentFactoryMapOwner/*, SingletonImageLoader.Factory*/ {
 
     lateinit var appComponent: AppComponent
+
+    override val componentFactories: Map<Class<*>, ConcreteComponentFactory>
+        get() = appComponent.factoriesProvider()
 
     override fun onCreate() {
         super.onCreate()

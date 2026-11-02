@@ -11,4 +11,8 @@
     <string name="welcome_load_ended_title">Pokémon data is ready!</string>
     <string name="welcome_load_ended_description">Your Pokédex is all set. Start exploring and find your favorite Pokémon.</string>
     <string name="welcome_load_ended_button">Let\'s start</string>
+
+    <string name="welcome_load_failed_title">Couldn\'t load Pokémon data</string>
+    <string name="welcome_load_failed_description">Check your internet connection and try again.</string>
+    <string name="welcome_load_failed_button">Try again</string>
 </resources>

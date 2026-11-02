@@ -4,13 +4,16 @@ import androidx.compose.runtime.Composable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.pokedex.compose_core.provider.LocalComponentFactoryMapProvider
+import androidx.compose.ui.platform.LocalContext
+import com.pokedex.core.di.ComponentFactoryMapOwner
 
 @Composable
 inline fun <reified T : ViewModel> daggerViewModel(
     key: String? = null,
 ): T {
-    val componentsMap = LocalComponentFactoryMapProvider.current
+    val componentsMap = (LocalContext.current.applicationContext as? ComponentFactoryMapOwner)
+        ?.componentFactories
+        ?: error("Application must implement ComponentFactoryMapOwner")
 
     return viewModel(
         modelClass = T::class.java,

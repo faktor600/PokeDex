@@ -17,6 +17,7 @@ import com.pokedex.compose_core.components.AppHeader
 import com.pokedex.compose_core.di.daggerViewModel
 import com.pokedex.compose_core.theme.AppTheme
 import com.pokedex.pokedex_welcome.composables.PokedexWelcomeLoadContent
+import com.pokedex.pokedex_welcome.composables.PokedexWelcomeLoadFailedContent
 import com.pokedex.pokedex_welcome.composables.PokedexWelcomeLoadingEndedContent
 import com.pokedex.pokedex_welcome.composables.PokedexWelcomeStartContent
 import com.pokedex.pokedex_welcome.state.PokedexWelcomeUiState
@@ -92,6 +93,14 @@ private fun PokedexWelcomeScreenContent(
                         }
                     )
                 }
+
+                is PokedexWelcomeUiState.DatabaseLoadFailed -> {
+                    PokedexWelcomeLoadFailedContent(
+                        onRetryClick = {
+                            handleIntent(PokedexWelcomeScreenIntent.MoveToDownloadDatabaseStep)
+                        }
+                    )
+                }
             }
         }
     }
@@ -130,6 +139,17 @@ private fun PreviewSuccessState() {
     AppTheme {
         PokedexWelcomeScreenContent(
             uiState = PokedexWelcomeUiState.DatabaseLoadedSuccessfully,
+            handleIntent = {}
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun PreviewFailedState() {
+    AppTheme {
+        PokedexWelcomeScreenContent(
+            uiState = PokedexWelcomeUiState.DatabaseLoadFailed,
             handleIntent = {}
         )
     }

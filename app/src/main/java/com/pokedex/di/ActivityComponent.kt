@@ -17,7 +17,7 @@ interface ActivityComponent: ComponentWithViewModel<MainActivityViewModel> {
     interface Factory: ComponentFactory<ActivityComponent>
 }
 
-@Module
+@Module(subcomponents = [ActivityComponent::class])
 abstract class ActivityComponentComponentFactoryModule {
 
     @Binds

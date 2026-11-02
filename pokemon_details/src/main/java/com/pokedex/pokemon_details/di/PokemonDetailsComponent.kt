@@ -22,7 +22,7 @@ interface PokemonDetailsComponent: ComponentWithViewModel<PokemonDetailsViewMode
     interface Factory: ComponentFactory<PokemonDetailsComponent>
 }
 
-@Module
+@Module(subcomponents = [PokemonDetailsComponent::class])
 abstract class PokemonDetailsComponentFactoryModule {
 
     @Binds

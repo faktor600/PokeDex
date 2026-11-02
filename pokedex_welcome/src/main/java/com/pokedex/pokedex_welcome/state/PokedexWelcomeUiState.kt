@@ -13,4 +13,6 @@ internal sealed class PokedexWelcomeUiState {
     ): PokedexWelcomeUiState()
 
     data object DatabaseLoadedSuccessfully: PokedexWelcomeUiState()
+
+    data object DatabaseLoadFailed: PokedexWelcomeUiState()
 }

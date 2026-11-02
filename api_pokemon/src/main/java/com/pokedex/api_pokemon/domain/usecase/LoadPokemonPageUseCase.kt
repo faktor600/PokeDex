@@ -1,11 +1,11 @@
 package com.pokedex.api_pokemon.domain.usecase
 
 import com.pokedex.api_pokemon.domain.PokemonRepository
-import com.pokedex.core.domain.model.Pagination
 import javax.inject.Inject
 
-class GetFirstPokemonPageUseCase @Inject constructor(
+class LoadPokemonPageUseCase @Inject constructor(
     private val repository: PokemonRepository
 ) {
-    suspend fun execute() = repository.loadFirstPokemonPageAndSave()
+    /** [url] == null loads the first page. */
+    suspend fun execute(url: String? = null) = repository.loadPokemonPageAndSave(url)
 }

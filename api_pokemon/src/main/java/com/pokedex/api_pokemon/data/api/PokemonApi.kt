@@ -11,11 +11,11 @@ import retrofit2.http.Url
 
 interface PokemonApi {
 
-    @GET("pokemon")
-    suspend fun getPokemonPaginationStart(): Response<PaginationResponse>
-
+    /**
+     * [url] is either a relative path (`pokemon` for the first page) or an absolute `next` url.
+     */
     @GET
-    suspend fun getNextPokemonPagination(@Url url: String): Response<PaginationResponse>
+    suspend fun getPokemonPage(@Url url: String): Response<PaginationResponse>
 
     @GET("pokemon/{id}")
     suspend fun getSinglePokemon(@Path("id") id: PokemonId): Response<PokemonResponse>
