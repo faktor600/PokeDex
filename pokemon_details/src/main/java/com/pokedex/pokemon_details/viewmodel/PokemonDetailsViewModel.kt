@@ -35,154 +35,70 @@ class PokemonDetailsViewModel @Inject constructor(
     fun initialize(route: PokemonDetailsRoute) {
         _uiState.update {
             it.copy(
-                currentPokemonById = route.id
+                currentPokemonById = route.id,
+                pokemonMap = route.ids.associateWith { id ->
+                    it.pokemonMap[id] ?: PokemonDetails.Loading
+                },
+                firstId = route.ids.first(),
+                lastId = route.ids.last()
             )
         }
         viewModelScope.launch {
-            val pokemon = getPokemonUseCase.execute(route.id)
-
-            pokemon.getOrNull()?.let { pokemon ->
-                val pokemonSpecies = getPokemonSpecies.execute(pokemon.speciesLink).getOrThrow()
-                val pokemonDetails = getPokemonDetails(
-                    pokemon = pokemon,
-                    pokemonSpecies = pokemonSpecies
-                )
-
-                _uiState.update {
-                    it.copy(
-                        currentPokemonById = route.id,
-                        pokemonMap = mutableMapOf<PokemonId, PokemonDetails>().apply {
-                            putAll(
-                                route.ids.associateWith {
-                                if (it == route.id) pokemonDetails else PokemonDetails.Loading
-                            }
-                            )
-                        },
-                        firstId = route.ids.first(),
-                        lastId = route.ids.last()
-                    )
-                }
-            }
+            loadDetails(route.id)
         }
     }
 
-    fun onPrevClick() {
-        val collection = _uiState.value.pokemonMap.asIterable().withIndex()
-        val old = collection.firstOrNull { it.value.key == _uiState.value.currentPokemonById }
+    fun onPrevClick() = navigate(-1)
 
-        if (old?.index != null) {
-            val prevIndex = (old.index - 1).coerceIn(0, _uiState.value.pokemonMap.size - 1)
+    fun onNextClick() = navigate(1)
 
-            if (prevIndex == old.index) return
+    private fun navigate(offset: Int) {
+        val state = _uiState.value
+        val ids = state.pokemonMap.keys.toList()
+        val currentIndex = ids.indexOf(state.currentPokemonById)
+        if (currentIndex < 0) return
 
-            val prev = collection.firstOrNull { it.index == prevIndex } ?: return
-            _uiState.update {
-                it.copy(
-                    currentPokemonById = prev.value.key
-                )
-            }
-            if (prev.value.value == PokemonDetails.Loading) {
-                viewModelScope.launch {
-                    val pokemon = getPokemonUseCase.execute(prev.value.key)
+        val targetId = ids.getOrNull(currentIndex + offset) ?: return
 
-                    pokemon.getOrNull()?.let { pokemon ->
-                        val pokemonSpecies = try {
-                            getPokemonSpecies.execute(pokemon.speciesLink).getOrThrow()
-                        } catch (e: Exception) {
-                            if (e is CancellationException) throw e
+        _uiState.update { it.copy(currentPokemonById = targetId) }
 
-                            _uiState.update {
-                                it.copy(
-                                    currentPokemonById = prev.value.key
-                                )
-                            }
-
-                            return@launch
-                        }
-                        val pokemonDetails = getPokemonDetails(
-                            pokemon = pokemon,
-                            pokemonSpecies = pokemonSpecies
-                        )
-
-                        _uiState.update {
-                            it.copy(
-                                currentPokemonById = prev.value.key,
-                                pokemonMap = it.pokemonMap.toMutableMap().apply {
-                                    put(prev.value.key, pokemonDetails)
-                                }
-                            )
-                        }
-                    }
-                }
-            } else {
-                _uiState.update {
-                    it.copy(
-                        currentPokemonById = prev.value.key
-                    )
-                }
-            }
+        if (state.pokemonMap[targetId] == PokemonDetails.Loading) {
+            viewModelScope.launch { loadDetails(targetId) }
         }
     }
 
-    fun onNextClick() {
-        val collection = _uiState.value.pokemonMap.asIterable().withIndex()
-        val old = collection.firstOrNull { it.value.key == _uiState.value.currentPokemonById }
+    /**
+     * Загружает покемона в два этапа: сначала публикует всё, что есть в ответе pokemon
+     * (тип, имя, картинка, статы), чтобы UI сразу получил правильный цвет,
+     * затем дополняет описание из species.
+     */
+    private suspend fun loadDetails(id: PokemonId) {
+        val pokemon = getPokemonUseCase.execute(id).getOrNull() ?: return
+        val partial = getPokemonDetails(pokemon = pokemon, description = "")
+        putDetails(id, partial)
 
-        if (old?.index != null) {
-            val nextIndex = old.index + 1
-
-            val next = collection.firstOrNull { it.index == nextIndex } ?: return
-
-            _uiState.update {
-                it.copy(
-                    currentPokemonById = next.value.key
-                )
-            }
-
-            if (next.value.value == PokemonDetails.Loading) {
-                viewModelScope.launch {
-                    val pokemon = getPokemonUseCase.execute(next.value.key)
-
-                    pokemon.getOrNull()?.let { pokemon ->
-                        val pokemonSpecies = try {
-                            getPokemonSpecies.execute(pokemon.speciesLink).getOrThrow()
-                        } catch (e: Exception) {
-                            if (e is CancellationException) throw e
-
-                            _uiState.update {
-                                it.copy(
-                                    currentPokemonById = next.value.key
-                                )
-                            }
-
-                            return@launch
-                        }
-                        val pokemonDetails = getPokemonDetails(
-                            pokemon = pokemon,
-                            pokemonSpecies = pokemonSpecies
-                        )
-
-                        _uiState.update {
-                            it.copy(
-                                currentPokemonById = next.value.key,
-                                pokemonMap = it.pokemonMap.toMutableMap().apply {
-                                    put(next.value.key, pokemonDetails)
-                                }
-                            )
-                        }
-                    }
-                }
-            } else {
-                _uiState.update {
-                    it.copy(
-                        currentPokemonById = next.value.key
-                    )
-                }
-            }
+        val species = try {
+            getPokemonSpecies.execute(pokemon.speciesLink).getOrThrow()
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            return
         }
+
+        putDetails(id, partial.copy(description = species.getDescription()))
     }
 
-    private fun getPokemonDetails(pokemon: Pokemon, pokemonSpecies: PokemonSpecies) = PokemonDetails.Loaded(
+    private fun putDetails(id: PokemonId, details: PokemonDetails.Loaded) {
+        // `+` на LinkedHashMap сохраняет порядок ключей, на нём строится навигация по индексу
+        _uiState.update { it.copy(pokemonMap = it.pokemonMap + (id to details)) }
+    }
+
+    private fun PokemonSpecies.getDescription() = flavorTextEntries
+        .filter { it.language == "en" }
+        .random()
+        .flavorText
+        .replace("\n", " ")
+
+    private fun getPokemonDetails(pokemon: Pokemon, description: String) = PokemonDetails.Loaded(
         pokemonName = pokemon.name.getPokemonNameForPresentation(),
         pokemonNumber = pokemon.id.getPokemonNumberForPresentation(),
         pokemonImageUrl = pokemon.officialArtwork ?: "",
@@ -192,7 +108,7 @@ class PokemonDetailsViewModel @Inject constructor(
         }.toSet(),
         weight = "${decimalFormat.format(pokemon.weight / 10f)} kg",
         height = "${decimalFormat.format(pokemon.height / 10f)} m",
-        description = pokemonSpecies.flavorTextEntries.filter { it.language == "en" }.random().flavorText.replace("\n", " "),
+        description = description,
         moves = pokemon.abilities.map {
             it.name.replaceFirstChar { if (it.isLowerCase()) it.titlecase(
                 Locale.getDefault()) else it.toString() }

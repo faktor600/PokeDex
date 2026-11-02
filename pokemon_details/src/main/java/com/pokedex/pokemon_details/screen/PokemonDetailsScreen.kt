@@ -2,6 +2,10 @@ package com.pokedex.pokemon_details.screen
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.Spring
@@ -40,11 +44,19 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.res.painterResource
@@ -91,6 +103,35 @@ internal fun PokemonDetailsScreen(
     )
 }
 
+private enum class SwipeDirection { Next, Prev }
+
+private const val COLOR_ANIMATION_MS = 300
+private const val SWIPE_THRESHOLD_DIVIDER = 15f
+private const val PLACEHOLDER_ALPHA = 0.6f
+private const val PLACEHOLDER_DARKEN = 0.3f
+
+/** Рисует [delegate], перекрашивая его в [tint] (placeholder-силуэт — одноцветный). */
+private class TintedPainter(
+    private val delegate: Painter,
+    private val tint: Color,
+) : Painter() {
+    override val intrinsicSize: Size get() = delegate.intrinsicSize
+
+    override fun DrawScope.onDraw() {
+        with(delegate) {
+            draw(size = size, alpha = 1f, colorFilter = ColorFilter.tint(tint))
+        }
+    }
+}
+
+@Composable
+private fun PokemonTypePresentationModel.backgroundColor(): Color =
+    if (this == PokemonTypePresentationModel.Unknown) {
+        AppTheme.grayscaleColor().whireframe
+    } else {
+        color
+    }
+
 @Composable
 private fun PokemonDetailsScreenContent(
     uiStateMain: PokemonDetailsUiState,
@@ -98,41 +139,80 @@ private fun PokemonDetailsScreenContent(
     rightClick: () -> Unit,
     onBackClick: () -> Unit,
 ) {
-    var lastKnownId by remember { mutableStateOf(uiStateMain.currentPokemonById) }
-    val details = uiStateMain.pokemonMap[lastKnownId] as? PokemonDetails.Loaded
+    // null = смена id не от пользователя (первый заход, initialize, догрузка данных)
+    var pendingSwipe by remember { mutableStateOf<SwipeDirection?>(null) }
+    val onPrev = {
+        if (uiStateMain.isPrevVisible) {
+            pendingSwipe = SwipeDirection.Prev
+            leftClick()
+        }
+    }
+    val onNext = {
+        if (uiStateMain.isNextVisible) {
+            pendingSwipe = SwipeDirection.Next
+            rightClick()
+        }
+    }
+    val currentOnPrev by rememberUpdatedState(onPrev)
+    val currentOnNext by rememberUpdatedState(onNext)
+    LaunchedEffect(uiStateMain.currentPokemonById) { pendingSwipe = null }
+
+    val details = uiStateMain.pokemonMap[uiStateMain.currentPokemonById] as? PokemonDetails.Loaded
+    val containerColor by animateColorAsState(
+        targetValue = if (details == null) {
+            Color.Transparent
+        } else {
+            details.pokemonTypeMain.backgroundColor()
+        },
+        animationSpec = tween(COLOR_ANIMATION_MS),
+        label = "containerColor"
+    )
     SharedTransitionLayout {
         AnimatedContent(
-            modifier = Modifier.background(
-                color = if (details?.pokemonTypeMain == PokemonTypePresentationModel.Unknown) {
-                    AppTheme.grayscaleColor().whireframe
-                } else {
-                    details?.pokemonTypeMain?.color ?: Color.Transparent
-                }
-            ),
+            modifier = Modifier
+                .background(color = containerColor)
+                .pointerInput(Unit) {
+                    // порог свайпа — 1/15 ширины экрана
+                    val threshold = size.width / SWIPE_THRESHOLD_DIVIDER
+                    var totalDrag = 0f
+                    detectHorizontalDragGestures(
+                        onDragStart = { totalDrag = 0f },
+                        onDragCancel = { totalDrag = 0f },
+                        onDragEnd = {
+                            when {
+                                totalDrag <= -threshold -> currentOnNext()
+                                totalDrag >= threshold -> currentOnPrev()
+                            }
+                            totalDrag = 0f
+                        },
+                        onHorizontalDrag = { _, dragAmount -> totalDrag += dragAmount }
+                    )
+                },
             targetState = uiStateMain.currentPokemonById,
             transitionSpec = {
-                if (lastKnownId.id < uiStateMain.currentPokemonById.id) {
-                    slideIntoContainer(
+                when (pendingSwipe) {
+                    SwipeDirection.Next -> slideIntoContainer(
                         towards = AnimatedContentTransitionScope.SlideDirection.Left,
                         animationSpec = spring(stiffness = Spring.StiffnessLow)
                     ) togetherWith slideOutOfContainer(
                         towards = AnimatedContentTransitionScope.SlideDirection.Left,
                         animationSpec = spring(stiffness = Spring.StiffnessMedium)
                     )
-                } else {
-                    slideIntoContainer(
+
+                    SwipeDirection.Prev -> slideIntoContainer(
                         towards = AnimatedContentTransitionScope.SlideDirection.Right,
                         animationSpec = spring(stiffness = Spring.StiffnessLow)
                     ) togetherWith slideOutOfContainer(
                         towards = AnimatedContentTransitionScope.SlideDirection.Right,
                         animationSpec = spring(stiffness = Spring.StiffnessMedium)
                     )
-                }.also {
-                    lastKnownId = uiStateMain.currentPokemonById
+
+                    null -> EnterTransition.None togetherWith ExitTransition.None
                 } using SizeTransform(clip = false)
             }
         ) { id ->
             val uiState = (uiStateMain.pokemonMap[id] as? PokemonDetails.Loaded) ?: PokemonDetails.Loaded()
+            val backgroundColor = uiState.pokemonTypeMain.backgroundColor()
             Scaffold(
                 topBar = {
                     TopBar(
@@ -145,11 +225,7 @@ private fun PokemonDetailsScreenContent(
                         onBackClick = onBackClick
                     )
                 },
-                contentColor = if (uiState.pokemonTypeMain == PokemonTypePresentationModel.Unknown) {
-                    AppTheme.grayscaleColor().whireframe
-                } else {
-                    uiState.pokemonTypeMain.color
-                }
+                contentColor = backgroundColor
             ) { contentPadding ->
 
                 val paddingTopStatusBar = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
@@ -159,11 +235,7 @@ private fun PokemonDetailsScreenContent(
                 ) {
                     Box(
                         modifier = Modifier.fillMaxSize().background(
-                            if (uiState.pokemonTypeMain == PokemonTypePresentationModel.Unknown) {
-                                AppTheme.grayscaleColor().whireframe
-                            } else {
-                                uiState.pokemonTypeMain.color
-                            }
+                            backgroundColor
                         ).sharedElement(
                             sharedContentState = rememberSharedContentState("background"),
                             animatedVisibilityScope = this@AnimatedContent
@@ -180,8 +252,9 @@ private fun PokemonDetailsScreenContent(
                                     zIndexInOverlay = 1000f
                                 ),
                                 imageUrl = uiState.pokemonImageUrl,
-                                leftClick = leftClick,
-                                rightClick = rightClick,
+                                placeholderColor = backgroundColor,
+                                leftClick = onPrev,
+                                rightClick = onNext,
                                 chevroneRightVisible = uiStateMain.isNextVisible,
                                 chevroneLeftVisibility = uiStateMain.isPrevVisible
                             )
@@ -273,6 +346,7 @@ private fun ImageWithScroll(
     chevroneRightVisible: Boolean,
     chevroneLeftVisibility: Boolean,
     imageUrl: String,
+    placeholderColor: Color,
 ) {
     Row(
         modifier = modifier,
@@ -295,14 +369,24 @@ private fun ImageWithScroll(
             modifier = Modifier.width(32.dp)
         )
 
+        val basePlaceholder = painterResource(ComposeCoreR.drawable.pokemon_placeholder)
+        val placeholder = remember(basePlaceholder, placeholderColor) {
+            TintedPainter(
+                delegate = basePlaceholder,
+                // затемняем цвет типа, чтобы силуэт читался и на цветном фоне, и на белой карточке
+                tint = lerp(placeholderColor, Color.Black, PLACEHOLDER_DARKEN)
+                    .copy(alpha = PLACEHOLDER_ALPHA)
+            )
+        }
+
         AsyncImage(
             modifier = Modifier
                 .weight(1f)
                 .aspectRatio(1f),
             model = imageUrl,
-            placeholder = painterResource(ComposeCoreR.drawable.pokemon_placeholder),
-            error = painterResource(ComposeCoreR.drawable.pokemon_placeholder),
-            fallback = painterResource(ComposeCoreR.drawable.pokemon_placeholder),
+            placeholder = placeholder,
+            error = placeholder,
+            fallback = placeholder,
             contentScale = ContentScale.FillBounds,
             contentDescription = null
         )
