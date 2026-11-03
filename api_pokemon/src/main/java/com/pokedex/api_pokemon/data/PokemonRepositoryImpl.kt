@@ -18,6 +18,7 @@ import com.pokedex.core.asStringBackend
 import com.pokedex.core.domain.model.PokemonId
 import com.pokedex.core.getTypeEnum
 import com.pokedex.core.network.AppJson
+import com.pokedex.core.network.NetworkEvents
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -42,7 +43,8 @@ import javax.inject.Inject
 
 internal class PokemonRepositoryImpl @Inject constructor(
     private val api: PokemonApi,
-    private val pokemonDao: PokemonDao
+    private val pokemonDao: PokemonDao,
+    private val networkEvents: NetworkEvents
 ) : PokemonRepository {
 
     companion object {
@@ -191,16 +193,20 @@ internal class PokemonRepositoryImpl @Inject constructor(
 
         if (background) {
             val failedAt = failedAtMap[id]
-            if (failedAt != null && System.currentTimeMillis() - failedAt < RETRY_COOLDOWN_MS) {
+            // A user-requested retry ("Try again" / network is back) drops failures that happened before it.
+            if (failedAt != null &&
+                failedAt >= networkEvents.lastRetryRequestedAt &&
+                System.currentTimeMillis() - failedAt < RETRY_COOLDOWN_MS
+            ) {
                 return CompletedUnit
             }
         }
 
         val job = pokemonSaveScope.async(start = CoroutineStart.LAZY) {
             if (background) {
-                savePokemonSemaphore.withPermit { getAndSavePokemon(id) }
+                savePokemonSemaphore.withPermit { getAndSavePokemon(id, background = true) }
             } else {
-                getAndSavePokemon(id)
+                getAndSavePokemon(id, background = false)
             }
         }
 
@@ -221,8 +227,9 @@ internal class PokemonRepositoryImpl @Inject constructor(
         return job
     }
 
-    private suspend fun getAndSavePokemon(pokemonId: PokemonId) {
-        val jsonString = executeWithRetry { api.getSinglePokemonRaw(pokemonId) }.string()
+    private suspend fun getAndSavePokemon(pokemonId: PokemonId, background: Boolean) {
+        val marker = if (background) "1" else null
+        val jsonString = executeWithRetry { api.getSinglePokemonRaw(pokemonId, marker) }.string()
         savePokemonToDb(jsonString)
     }
 

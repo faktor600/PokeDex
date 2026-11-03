@@ -72,3 +72,19 @@ Room is the source of truth, and the UI reads from it:
 Feature packages follow `di/`, `route/`, `screen/`, `state/`, and `viewModel/`. ViewModels expose a `uiState` `StateFlow`, and most also take an `*Intent` through `handleIntent` and emit a `*SideEffect` through a `SharedFlow`. `PokemonDetailsViewModel` uses direct methods such as `onNextClick` instead.
 
 Colors and typography come from `compose_core/theme` (`AppTheme`).
+
+# Figma → Compose rules
+- Stack: Kotlin, Jetpack Compose (BOM 2025.xx), Material 3, Coil для картинок.
+- Тема: ui/theme/ (AppTheme, AppColors, AppTypography, Dimens). Никаких хардкод-цветов и dp —
+  используй AppTheme.colorScheme / typography.
+- Маппинг Figma → Compose:
+    - Auto layout horizontal/vertical → Row/Column; gap → Arrangement.spacedBy
+    - Fill container → fillMaxWidth()/weight(1f); Hug → wrapContentSize
+    - Corner radius → RoundedCornerShape; Drop shadow 2dp → Modifier.dropShadow2dp; Drop shadow 6dp → Modifier.dropShadow6dp
+    - Inner shadow → Modifier.innerShadow 
+    - Figma-переменные → токены темы (сопоставляй по имени), смотреть в AppTheme. Перед добавлением новых уточнить у пользователя
+- Компоненты дизайн-системы: :compose_core/components. Сначала ищи там, новое создавай спрашивая у пользователя.
+- Иконки: экспортируй как vector drawable в :compose_core/res/drawable, имя ic_<name>.
+- Каждый экран/компонент: stateless @Composable (state + lambdas), modifier: Modifier = Modifier
+  первым опциональным параметром, @Preview для light/dark.
+- Строки → strings.xml, не хардкодить текст.

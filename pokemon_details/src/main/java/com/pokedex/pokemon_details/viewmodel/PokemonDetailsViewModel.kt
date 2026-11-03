@@ -8,6 +8,7 @@ import com.pokedex.api_pokemon.domain.usecase.GetPokemonSpeciesByUrlUseCase
 import com.pokedex.api_pokemon.domain.usecase.GetPokemonUseCase
 import com.pokedex.compose_core.common.toPresentationModel
 import com.pokedex.core.domain.model.PokemonId
+import com.pokedex.core.network.NetworkEvents
 import com.pokedex.core.utils.getPokemonNameForPresentation
 import com.pokedex.core.utils.getPokemonNumberForPresentation
 import com.pokedex.pokemon_details.route.PokemonDetailsRoute
@@ -24,13 +25,30 @@ import javax.inject.Inject
 
 class PokemonDetailsViewModel @Inject constructor(
     private val getPokemonUseCase: GetPokemonUseCase,
-    private val getPokemonSpecies: GetPokemonSpeciesByUrlUseCase
+    private val getPokemonSpecies: GetPokemonSpeciesByUrlUseCase,
+    networkEvents: NetworkEvents
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<PokemonDetailsUiState>(PokemonDetailsUiState())
     internal val uiState: StateFlow<PokemonDetailsUiState>
         get() = _uiState
 
     private val decimalFormat = DecimalFormat("#.#")
+
+    init {
+        // "No internet" screen was closed: repeat the request of the pokemon the user is looking at.
+        viewModelScope.launch {
+            networkEvents.retryRequests.collect { retryCurrentPokemon() }
+        }
+    }
+
+    private suspend fun retryCurrentPokemon() {
+        val state = _uiState.value
+        val id = state.currentPokemonById
+        val current = state.pokemonMap[id]
+        val needsReload = current == PokemonDetails.Loading ||
+            (current is PokemonDetails.Loaded && current.description.isEmpty())
+        if (needsReload) loadDetails(id)
+    }
 
     fun initialize(route: PokemonDetailsRoute) {
         _uiState.update {

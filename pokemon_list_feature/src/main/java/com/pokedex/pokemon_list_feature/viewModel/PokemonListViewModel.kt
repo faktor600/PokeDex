@@ -6,6 +6,7 @@ import com.pokedex.api_pokemon.domain.model.PokemonSearchItem
 import com.pokedex.api_pokemon.domain.usecase.PrefetchPokemonsUseCase
 import com.pokedex.api_pokemon.domain.usecase.SearchPokemonsUseCase
 import com.pokedex.core.domain.model.PokemonId
+import com.pokedex.core.network.NetworkEvents
 import com.pokedex.compose_core.models.PokemonCardUiModel
 import com.pokedex.core.utils.getPokemonNameForPresentation
 import com.pokedex.core.utils.getPokemonNumberForPresentation
@@ -36,7 +37,8 @@ private const val SEARCH_DELAY = 300L
 
 class PokemonListViewModel @Inject constructor(
     private val searchPokemonsUseCase: SearchPokemonsUseCase,
-    private val prefetchPokemonsUseCase: PrefetchPokemonsUseCase
+    private val prefetchPokemonsUseCase: PrefetchPokemonsUseCase,
+    networkEvents: NetworkEvents
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<PokemonListUiState>(PokemonListUiState.Loading)
     val uiState: StateFlow<PokemonListUiState>
@@ -54,8 +56,13 @@ class PokemonListViewModel @Inject constructor(
     val searchText: StateFlow<String>
         get() = _searchText.asStateFlow()
 
+    private var lastNeededIds: List<PokemonId> = emptyList()
+
     init {
         initialize()
+        viewModelScope.launch {
+            networkEvents.retryRequests.collect { retryLastPrefetch() }
+        }
     }
 
     @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
@@ -108,7 +115,14 @@ class PokemonListViewModel @Inject constructor(
     /** Downloads details only for the cards the user is about to see (not for the whole Pokédex). */
     fun onPokemonsNeeded(ids: List<PokemonId>) {
         if (ids.isEmpty()) return
+        lastNeededIds = ids
         viewModelScope.launch { prefetchPokemonsUseCase.execute(ids) }
+    }
+
+    /** The network is back: the prefetch of the visible cards failed in the background, so repeat it. */
+    private fun retryLastPrefetch() {
+        val ids = lastNeededIds
+        if (ids.isNotEmpty()) viewModelScope.launch { prefetchPokemonsUseCase.execute(ids) }
     }
 
     private fun filtersClick() {

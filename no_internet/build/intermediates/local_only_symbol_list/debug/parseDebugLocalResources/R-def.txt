@@ -1,0 +1,5 @@
+R_DEF: Internal format may change without notice
+local
+string no_internet_description
+string no_internet_retry
+string no_internet_title

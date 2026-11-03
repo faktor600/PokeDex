@@ -10,6 +10,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import com.pokedex.no_internet.route.NoInternetEntryProvider
+import com.pokedex.no_internet.route.NoInternetRoute
 import com.pokedex.compose_core.transition.LocalSharedTransitionScope
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
@@ -41,12 +44,35 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+/** Removes the "no internet" screen only if it is on top, so a second pop can't remove another screen. */
+private fun popNoInternetIfOnTop(backStack: MutableList<NavKey>) {
+    if (backStack.lastOrNull() == NoInternetRoute) {
+        backStack.removeLastOrNull()
+    }
+}
+
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 private fun MainActivityContainer(
     viewModel: MainActivityViewModel = daggerViewModel()
 ) {
     val backStack = remember { mutableStateListOf<NavKey>(SplashScreenScreenRoute) }
+
+    // Many parallel requests can fail at once, so the screen is pushed only if it isn't already on top.
+    LaunchedEffect(viewModel) {
+        viewModel.connectionLost.collect {
+            if (backStack.lastOrNull() != NoInternetRoute) {
+                backStack.add(NoInternetRoute)
+            }
+        }
+    }
+
+    // The network is back: leave the "no internet" screen (the retry signal itself comes from the ViewModel).
+    LaunchedEffect(viewModel) {
+        viewModel.isOnline.collect { isOnline ->
+            if (isOnline == true) popNoInternetIfOnTop(backStack)
+        }
+    }
 
     val entryProvider: ((NavKey) -> NavEntry<NavKey>) = entryProvider {
         PokemonListScreenNavProvider(
@@ -70,6 +96,12 @@ private fun MainActivityContainer(
         PokemonDetailsScreenNavProvider(
             onBackClick = {
                 backStack.removeLastOrNull()
+            }
+        )
+        NoInternetEntryProvider(
+            onRetryClick = {
+                popNoInternetIfOnTop(backStack)
+                viewModel.onRetryRequested()
             }
         )
     }

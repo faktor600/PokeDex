@@ -48,6 +48,7 @@ dependencies {
     implementation(project(":pokedex_welcome"))
     implementation(project(":splash_screen"))
     implementation(project(":pokemon_details"))
+    implementation(project(":no_internet"))
     api(project(":data_store"))
 
     implementation(libs.kotlinx.serialization.core)

@@ -1,0 +1,8 @@
+com.pokedex.no_internet-pngs-0 C:\Users\User\AndroidStudioProjects\PokeDex\no_internet\build\generated\res\pngs\debug
+com.pokedex.no_internet-updated_navigation_xml-1 C:\Users\User\AndroidStudioProjects\PokeDex\no_internet\build\generated\updated_navigation_xml\debug
+com.pokedex.no_internet-mergeDebugResources-2 C:\Users\User\AndroidStudioProjects\PokeDex\no_internet\build\intermediates\incremental\debug\mergeDebugResources\merged.dir
+com.pokedex.no_internet-mergeDebugResources-3 C:\Users\User\AndroidStudioProjects\PokeDex\no_internet\build\intermediates\incremental\debug\mergeDebugResources\stripped.dir
+com.pokedex.no_internet-debug-4 C:\Users\User\AndroidStudioProjects\PokeDex\no_internet\build\intermediates\merged_res\debug\mergeDebugResources
+com.pokedex.no_internet-debug-5 C:\Users\User\AndroidStudioProjects\PokeDex\no_internet\build\intermediates\packaged_res\debug\packageDebugResources
+com.pokedex.no_internet-debug-6 C:\Users\User\AndroidStudioProjects\PokeDex\no_internet\src\debug\res
+com.pokedex.no_internet-main-7 C:\Users\User\AndroidStudioProjects\PokeDex\no_internet\src\main\res
