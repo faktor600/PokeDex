@@ -19,6 +19,7 @@ dependencies {
     api(libs.retrofit)
     api(libs.okhttp)
     implementation(libs.okhttp.logging)
+    api(libs.kotlinx.coroutines.core)
 
     implementation(libs.kotlinx.serialization.core)
     implementation("com.squareup.retrofit2:converter-kotlinx-serialization:3.0.0")

@@ -1,6 +1,9 @@
 package com.pokedex.core.network.di
 
 import com.pokedex.core.network.AppJson
+import com.pokedex.core.network.ConnectionLostInterceptor
+import com.pokedex.core.network.DefaultNetworkEvents
+import com.pokedex.core.network.NetworkEvents
 import dagger.Module
 import dagger.Provides
 import okhttp3.Interceptor
@@ -16,10 +19,17 @@ class NetworkModule {
 
     @Provides
     @Singleton
+    fun provideNetworkEvents(): NetworkEvents = DefaultNetworkEvents()
+
+    @Provides
+    @Singleton
     fun okHttpClient(
-        @Named("chucker") interceptor: Interceptor
+        @Named("chucker") interceptor: Interceptor,
+        networkEvents: NetworkEvents
     ) = OkHttpClient
         .Builder()
+        // Outermost: sees the real exception, and Chucker still logs the failed call.
+        .addInterceptor(ConnectionLostInterceptor(networkEvents))
         .addInterceptor(interceptor)
         .build()
 

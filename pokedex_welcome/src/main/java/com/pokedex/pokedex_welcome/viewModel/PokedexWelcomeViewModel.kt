@@ -3,6 +3,7 @@ package com.pokedex.pokedex_welcome.viewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pokedex.api_pokemon.domain.usecase.LoadPokemonPageUseCase
+import com.pokedex.core.network.NetworkEvents
 import com.pokedex.data_store.prefs.PokedexWelcomePreferences
 import com.pokedex.pokedex_welcome.state.PokedexWelcomeUiState
 import kotlinx.coroutines.CancellationException
@@ -18,7 +19,8 @@ import javax.inject.Inject
 
 class PokedexWelcomeViewModel @Inject constructor(
     private val pokedexWelcomePreferences: PokedexWelcomePreferences,
-    private val loadPokemonPageUseCase: LoadPokemonPageUseCase
+    private val loadPokemonPageUseCase: LoadPokemonPageUseCase,
+    networkEvents: NetworkEvents
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<PokedexWelcomeUiState>(PokedexWelcomeUiState.Welcome)
@@ -28,6 +30,15 @@ class PokedexWelcomeViewModel @Inject constructor(
     internal val sideEffect: Flow<PokedexWelcomeSideEffect> = _sideEffect.receiveAsFlow()
 
     private var loadJob: Job? = null
+
+    init {
+        // "No internet" screen was closed: repeat the download that failed.
+        viewModelScope.launch {
+            networkEvents.retryRequests.collect {
+                if (_uiState.value is PokedexWelcomeUiState.DatabaseLoadFailed) loadData()
+            }
+        }
+    }
 
     /**
      * Resets the screen to [PokedexWelcomeUiState.Welcome] only when nothing is in progress,
