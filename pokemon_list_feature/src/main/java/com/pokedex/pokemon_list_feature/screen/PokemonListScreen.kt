@@ -63,7 +63,8 @@ import com.pokedex.pokemon_list_feature.viewModel.PokemonListViewModel
 fun PokemonListScreen(
     toPokemonDetails: (
         id: PokemonId,
-        ids: List<PokemonId>
+        ids: List<PokemonId>,
+        imageUrl: String
     ) -> Unit,
     viewModel: PokemonListViewModel = daggerViewModel(),
 ) {
@@ -94,7 +95,8 @@ fun PokemonListScreen(
         onCardClick = { cardUiModel ->
             toPokemonDetails.invoke(
                 cardUiModel.id,
-                uiState.getPokemonsItems().map { pokemon -> pokemon.id }
+                uiState.getPokemonsItems().map { pokemon -> pokemon.id },
+                (cardUiModel as? PokemonCardUiModel.Pokemon)?.url.orEmpty()
             )
         }
     )

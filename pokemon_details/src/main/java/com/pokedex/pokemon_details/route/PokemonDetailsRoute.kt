@@ -7,5 +7,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class PokemonDetailsRoute(
     val id: PokemonId,
-    val ids: List<PokemonId>
+    val ids: List<PokemonId>,
+    /** URL картинки из списка: показывается сразу, пока детали ещё грузятся. */
+    val imageUrl: String = ""
 ): NavKey

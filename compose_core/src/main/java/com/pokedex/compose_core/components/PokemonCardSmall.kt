@@ -24,6 +24,7 @@ import com.pokedex.compose_core.R
 import com.pokedex.compose_core.common.dropShadow2dp
 import com.pokedex.compose_core.models.PokemonCardUiModel
 import com.pokedex.compose_core.theme.AppTheme
+import com.pokedex.compose_core.transition.pokemonSharedImage
 import com.pokedex.core.domain.model.PokemonId
 
 @Composable
@@ -80,7 +81,8 @@ fun PokemonCardSmall(
             modifier = Modifier
                 .padding(16.dp)
                 .align(Alignment.Center)
-                .aspectRatio(1f),
+                .aspectRatio(1f)
+                .pokemonSharedImage(model.id),
             model = model.url,
             contentDescription = null,
             contentScale = ContentScale.Fit,

@@ -10,7 +10,8 @@ import com.pokedex.pokemon_list_feature.screen.PokemonListScreen
 fun EntryProviderScope<NavKey>.PokemonListScreenNavProvider(
     toPokemonDetails: (
         id: PokemonId,
-        ids: List<PokemonId>
+        ids: List<PokemonId>,
+        imageUrl: String
     ) -> Unit
 ) {
     addEntryProvider(

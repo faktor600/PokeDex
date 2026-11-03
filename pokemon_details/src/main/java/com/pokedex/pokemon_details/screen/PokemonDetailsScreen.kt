@@ -67,12 +67,15 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.platform.LocalContext
 import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
 import com.pokedex.compose_core.R as ComposeCoreR
 import com.pokedex.compose_core.common.PokemonTypePresentationModel
 import com.pokedex.compose_core.components.PokemonTypeChip
 import com.pokedex.compose_core.di.daggerViewModel
 import com.pokedex.compose_core.theme.AppTheme
+import com.pokedex.compose_core.transition.pokemonSharedImage
 import com.pokedex.core.domain.model.PokemonId
 import com.pokedex.pokemon_details.R
 import com.pokedex.pokemon_details.composables.StatBar
@@ -99,7 +102,9 @@ internal fun PokemonDetailsScreen(
         uiStateMain = uiState,
         onBackClick = onBackClick,
         leftClick = viewModel::onPrevClick,
-        rightClick = viewModel::onNextClick
+        rightClick = viewModel::onNextClick,
+        initialId = route.id,
+        initialImageUrl = route.imageUrl
     )
 }
 
@@ -138,6 +143,8 @@ private fun PokemonDetailsScreenContent(
     leftClick: () -> Unit,
     rightClick: () -> Unit,
     onBackClick: () -> Unit,
+    initialId: PokemonId? = null,
+    initialImageUrl: String = "",
 ) {
     // null = смена id не от пользователя (первый заход, initialize, догрузка данных)
     var pendingSwipe by remember { mutableStateOf<SwipeDirection?>(null) }
@@ -159,11 +166,7 @@ private fun PokemonDetailsScreenContent(
 
     val details = uiStateMain.pokemonMap[uiStateMain.currentPokemonById] as? PokemonDetails.Loaded
     val containerColor by animateColorAsState(
-        targetValue = if (details == null) {
-            Color.Transparent
-        } else {
-            details.pokemonTypeMain.backgroundColor()
-        },
+        targetValue = details?.pokemonTypeMain?.backgroundColor() ?: Color.Transparent,
         animationSpec = tween(COLOR_ANIMATION_MS),
         label = "containerColor"
     )
@@ -251,7 +254,10 @@ private fun PokemonDetailsScreenContent(
                                     animatedVisibilityScope = this@AnimatedContent,
                                     zIndexInOverlay = 1000f
                                 ),
-                                imageUrl = uiState.pokemonImageUrl,
+                                imageModifier = Modifier.pokemonSharedImage(id),
+                                imageUrl = uiState.pokemonImageUrl.ifBlank {
+                                    if (id == initialId) initialImageUrl else ""
+                                },
                                 placeholderColor = backgroundColor,
                                 leftClick = onPrev,
                                 rightClick = onNext,
@@ -341,6 +347,7 @@ private fun PokemonDetailsScreenContent(
 @Composable
 private fun ImageWithScroll(
     modifier: Modifier = Modifier,
+    imageModifier: Modifier = Modifier,
     leftClick: () -> Unit,
     rightClick: () -> Unit,
     chevroneRightVisible: Boolean,
@@ -382,12 +389,17 @@ private fun ImageWithScroll(
         AsyncImage(
             modifier = Modifier
                 .weight(1f)
-                .aspectRatio(1f),
-            model = imageUrl,
+                .aspectRatio(1f)
+                .then(imageModifier),
+            model = ImageRequest.Builder(LocalContext.current)
+                .data(imageUrl.ifBlank { null })
+                // пока грузится полноразмерная картинка, показываем уже закэшированную из списка
+                .placeholderMemoryCacheKey(imageUrl)
+                .build(),
             placeholder = placeholder,
             error = placeholder,
             fallback = placeholder,
-            contentScale = ContentScale.FillBounds,
+            contentScale = ContentScale.Fit,
             contentDescription = null
         )
 

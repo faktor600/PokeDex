@@ -7,6 +7,10 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.runtime.CompositionLocalProvider
+import com.pokedex.compose_core.transition.LocalSharedTransitionScope
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
@@ -37,6 +41,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 private fun MainActivityContainer(
     viewModel: MainActivityViewModel = daggerViewModel()
@@ -45,8 +50,8 @@ private fun MainActivityContainer(
 
     val entryProvider: ((NavKey) -> NavEntry<NavKey>) = entryProvider {
         PokemonListScreenNavProvider(
-            toPokemonDetails = { id, ids ->
-                backStack.add(PokemonDetailsRoute(id, ids))
+            toPokemonDetails = { id, ids, imageUrl ->
+                backStack.add(PokemonDetailsRoute(id, ids, imageUrl))
             }
         )
         PokedexWelcomeEntryProvider(
@@ -68,9 +73,13 @@ private fun MainActivityContainer(
             }
         )
     }
-    NavDisplay(
-        backStack = backStack,
-        onBack = { backStack.removeLastOrNull() },
-        entryProvider = entryProvider
-    )
+    SharedTransitionLayout {
+        CompositionLocalProvider(LocalSharedTransitionScope provides this) {
+            NavDisplay(
+                backStack = backStack,
+                onBack = { backStack.removeLastOrNull() },
+                entryProvider = entryProvider
+            )
+        }
+    }
 }
