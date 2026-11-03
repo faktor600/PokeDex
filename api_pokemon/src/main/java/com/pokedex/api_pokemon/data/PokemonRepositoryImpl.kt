@@ -2,12 +2,14 @@ package com.pokedex.api_pokemon.data
 
 import com.pokedex.api_pokemon.dao.PokemonDao
 import com.pokedex.api_pokemon.dao.entities.PokemonEntity
+import com.pokedex.api_pokemon.dao.entities.PokemonListRow
 import com.pokedex.api_pokemon.data.api.PokemonApi
 import com.pokedex.api_pokemon.data.mapper.toDomain
 import com.pokedex.api_pokemon.data.response.PokemonResponse
 import com.pokedex.api_pokemon.data.response.PokemonSpeciesResponse
 import com.pokedex.api_pokemon.domain.PokemonRepository
 import com.pokedex.api_pokemon.domain.model.Pokemon
+import com.pokedex.api_pokemon.domain.model.PokemonError
 import com.pokedex.api_pokemon.domain.model.PokemonPage
 import com.pokedex.api_pokemon.domain.model.PokemonSearchItem
 import com.pokedex.api_pokemon.domain.model.PokemonSpecies
@@ -15,21 +17,25 @@ import com.pokedex.core.PokemonTypeEnum
 import com.pokedex.core.asStringBackend
 import com.pokedex.core.domain.model.PokemonId
 import com.pokedex.core.getTypeEnum
+import com.pokedex.core.network.AppJson
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.Json
+import kotlinx.serialization.SerializationException
+import retrofit2.Response
+import java.io.IOException
 import java.net.URI
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
@@ -43,43 +49,44 @@ internal class PokemonRepositoryImpl @Inject constructor(
         /** Fetches that are running right now. Entries are removed on completion (success or failure). */
         private val loadingPokemonsMap = ConcurrentHashMap<PokemonId, Deferred<Unit>>()
 
-        /** Time of the last failed background fetch, used to avoid hammering the API on every Flow emission. */
+        /** Time of the last failed background fetch, used to avoid hammering the API. */
         private val failedAtMap = ConcurrentHashMap<PokemonId, Long>()
         private const val RETRY_COOLDOWN_MS = 30_000L
+
+        /** Species never change during a session, so the details screen doesn't need to refetch them. */
+        private val speciesCache = ConcurrentHashMap<String, PokemonSpecies>()
 
         /** Relative to the Retrofit baseUrl. */
         private const val FIRST_PAGE_PATH = "pokemon"
 
+        /** Retries of a single request on I/O errors, HTTP 429 and 5xx. */
+        private const val MAX_RETRIES = 3
+        private const val BACKOFF_BASE_MS = 500L
+        private const val MAX_RETRY_DELAY_MS = 10_000L
+
         /** Limits only background (list) fetches, so the details screen is never stuck behind them. */
-        private val savePokemonSemaphore = Semaphore(20)
+        private val savePokemonSemaphore = Semaphore(8)
 
         // async (not launch): exceptions are stored in the Deferred instead of reaching the
         // uncaught exception handler (which would crash the app).
         private val pokemonSaveScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-        private val json = Json {
-            ignoreUnknownKeys = true
-            coerceInputValues = true
-        }
+        private val CompletedUnit: Deferred<Unit> = CompletableDeferred(Unit)
     }
 
     override suspend fun getPokemonSpecies(url: String): Result<PokemonSpecies> = withContext(Dispatchers.IO) {
         try {
-            val response = api.getSpeciesByUrl(url)
+            speciesCache[url]?.let { return@withContext Result.success(it) }
 
-            if (!response.isSuccessful) {
-                response.errorBody()?.close()
-                return@withContext Result.failure(IllegalStateException("Failed with ${response.code()} code"))
-            }
+            val body = executeWithRetry { api.getSpeciesByUrl(url) }.string()
+            val species = AppJson.decodeFromString<PokemonSpeciesResponse>(body).toDomain()
 
-            val body = response.body()?.string()
-                ?: return@withContext Result.failure(IllegalStateException("Null string body for pokemon species"))
-
-            Result.success(json.decodeFromString<PokemonSpeciesResponse>(body).toDomain())
+            speciesCache[url] = species
+            Result.success(species)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(e.toPokemonError())
         }
     }
 
@@ -95,66 +102,54 @@ internal class PokemonRepositoryImpl @Inject constructor(
             }
 
             Result.success(
-                json.decodeFromString<PokemonResponse>(jsonString ?: error("No Pokemon Found")).toDomain()
+                AppJson.decodeFromString<PokemonResponse>(jsonString ?: throw PokemonError.NotFound()).toDomain()
             )
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(e.toPokemonError())
         }
     }
 
     override suspend fun searchForPokemonsByNameOrId(text: String): Flow<List<PokemonSearchItem>> {
-        val source = if (text.isEmpty()) {
-            pokemonDao.getAll()
+        val query = text.trim()
+        val source = if (query.isEmpty()) {
+            pokemonDao.getAllRows()
         } else {
-            pokemonDao.searchForPokemons(
-                id = text.toLongOrNull(),
-                likePattern = text.escapeLike()
+            pokemonDao.searchRows(
+                // Only plain digits count as an id: "+5" or "1 " must not match pokemon #5 / #1.
+                id = query.takeIf { str -> str.all { it in '0'..'9' } }?.toLongOrNull(),
+                likePattern = query.escapeLike()
             )
         }
 
+        // No downloads here: the UI asks for what is actually visible via prefetchPokemons().
         return source
-            .onEach { pokemonList ->
-                // Idempotent: already running / recently failed ids are skipped.
-                pokemonList.forEach { entity ->
-                    if (entity.json == null) ensureLoaded(PokemonId(entity.id), background = true)
-                }
-            }
-            .map { pokemonList ->
-                pokemonList.map { pokemonEntity ->
-                    val pokemonId = PokemonId(pokemonEntity.id)
-
-                    if (pokemonEntity.json != null) {
-                        PokemonSearchItem.LoadedPokemon(
-                            id = pokemonId,
-                            name = pokemonEntity.name,
-                            type = pokemonEntity.type.getTypeEnum(),
-                            pokemonMainImageUrl = pokemonEntity.pokemonMainImageUrl ?: ""
-                        )
-                    } else {
-                        PokemonSearchItem.NotLoaded(
-                            id = pokemonId,
-                            name = pokemonEntity.name,
-                        )
-                    }
-                }
-            }
+            .map { rows -> rows.map { it.toSearchItem() } }
             // DB errors are propagated to the collector instead of silently completing the Flow.
             .flowOn(Dispatchers.IO)
     }
 
+    override suspend fun prefetchPokemons(ids: List<PokemonId>) {
+        if (ids.isEmpty()) return
+
+        try {
+            withContext(Dispatchers.IO) {
+                pokemonDao.getNotLoadedIds(ids.map { it.id }).forEach { id ->
+                    // Idempotent: already running / recently failed ids are skipped.
+                    ensureLoaded(PokemonId(id), background = true)
+                }
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            // Prefetch is best effort: the skeletons simply stay until the next attempt.
+        }
+    }
+
     override suspend fun loadPokemonPageAndSave(url: String?): Result<PokemonPage> = withContext(Dispatchers.IO) {
         try {
-            val response = api.getPokemonPage(url ?: FIRST_PAGE_PATH)
-
-            if (!response.isSuccessful) {
-                response.errorBody()?.close()
-                return@withContext Result.failure(IllegalStateException("Failed with ${response.code()} code"))
-            }
-
-            val body = response.body()
-                ?: return@withContext Result.failure(IllegalStateException("Empty pagination response"))
+            val body = executeWithRetry { api.getPokemonPage(url ?: FIRST_PAGE_PATH) }
 
             // A single malformed item must not fail the whole page.
             val stubs = body.results.mapNotNull {
@@ -181,7 +176,7 @@ internal class PokemonRepositoryImpl @Inject constructor(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(e.toPokemonError())
         }
     }
 
@@ -227,19 +222,12 @@ internal class PokemonRepositoryImpl @Inject constructor(
     }
 
     private suspend fun getAndSavePokemon(pokemonId: PokemonId) {
-        val response = api.getSinglePokemonRaw(pokemonId)
-
-        if (!response.isSuccessful) {
-            response.errorBody()?.close()
-            error("Failed with ${response.code()} code")
-        }
-
-        val body = response.body() ?: error("Empty response")
-        savePokemonToDb(body.string())
+        val jsonString = executeWithRetry { api.getSinglePokemonRaw(pokemonId) }.string()
+        savePokemonToDb(jsonString)
     }
 
     private suspend fun savePokemonToDb(jsonString: String) {
-        val pokemonResponse = json.decodeFromString<PokemonResponse>(jsonString)
+        val pokemonResponse = AppJson.decodeFromString<PokemonResponse>(jsonString)
 
         pokemonDao.insertPokemon(
             PokemonEntity(
@@ -247,10 +235,70 @@ internal class PokemonRepositoryImpl @Inject constructor(
                 name = pokemonResponse.name,
                 type = pokemonResponse.types.firstOrNull()?.type?.name
                     ?: PokemonTypeEnum.UNKNOWN.asStringBackend(),
-                pokemonMainImageUrl = pokemonResponse.sprites.other.officialArtwork?.frontDefault ?: "",
+                pokemonMainImageUrl = pokemonResponse.sprites.other?.officialArtwork?.frontDefault
+                    ?: pokemonResponse.sprites.frontDefault
+                    ?: "",
                 json = jsonString
             )
         )
+    }
+
+    /**
+     * Executes [call], retrying I/O errors, HTTP 429 and 5xx with exponential backoff
+     * (honoring `Retry-After` when present). Other non-success codes fail immediately.
+     *
+     * @throws PokemonError.Http for a final non-success code, [PokemonError.Network] for a final I/O error,
+     * [PokemonError.Parsing] for an empty body.
+     */
+    private suspend fun <T : Any> executeWithRetry(call: suspend () -> Response<T>): T {
+        var attempt = 0
+        while (true) {
+            var retryDelayMs = 0L
+            try {
+                val response = call()
+                if (response.isSuccessful) {
+                    return response.body() ?: throw PokemonError.Parsing("Empty response body")
+                }
+
+                val code = response.code()
+                val retryAfterMs = response.headers()["Retry-After"]?.toLongOrNull()?.times(1000)
+                response.errorBody()?.close()
+
+                val retryable = code == 429 || code in 500..599
+                if (!retryable || attempt >= MAX_RETRIES) throw PokemonError.Http(code)
+
+                retryDelayMs = retryAfterMs ?: backoffMs(attempt)
+            } catch (e: IOException) {
+                if (attempt >= MAX_RETRIES) throw PokemonError.Network(e)
+                retryDelayMs = backoffMs(attempt)
+            }
+
+            delay(retryDelayMs.coerceAtMost(MAX_RETRY_DELAY_MS))
+            attempt++
+        }
+    }
+
+    private fun backoffMs(attempt: Int): Long = BACKOFF_BASE_MS shl attempt
+
+    private fun Throwable.toPokemonError(): PokemonError = when (this) {
+        is PokemonError -> this
+        is IOException -> PokemonError.Network(this)
+        is SerializationException -> PokemonError.Parsing("Failed to decode response", this)
+        else -> PokemonError.Unknown(this)
+    }
+
+    private fun PokemonListRow.toSearchItem(): PokemonSearchItem {
+        val pokemonId = PokemonId(id)
+        return if (isLoaded) {
+            PokemonSearchItem.LoadedPokemon(
+                id = pokemonId,
+                name = name,
+                type = type.getTypeEnum(),
+                pokemonMainImageUrl = imageUrl ?: ""
+            )
+        } else {
+            PokemonSearchItem.NotLoaded(id = pokemonId, name = name)
+        }
     }
 
     private fun getPokemonIdFromUrl(url: String): PokemonId {
@@ -267,5 +315,3 @@ internal class PokemonRepositoryImpl @Inject constructor(
     private fun String.escapeLike(): String =
         replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 }
-
-private val CompletedUnit: Deferred<Unit> = kotlinx.coroutines.CompletableDeferred(Unit)

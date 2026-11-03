@@ -29,6 +29,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -58,6 +60,8 @@ import com.pokedex.pokemon_list_feature.state.PokemonListUiState
 import com.pokedex.pokemon_list_feature.viewModel.MainScreenIntent
 import com.pokedex.pokemon_list_feature.viewModel.MainScreenSideEffect
 import com.pokedex.pokemon_list_feature.viewModel.PokemonListViewModel
+
+private const val PREFETCH_AHEAD = 9
 
 @Composable
 fun PokemonListScreen(
@@ -92,6 +96,7 @@ fun PokemonListScreen(
         onClearText = {
             viewModel.handleIntent(MainScreenIntent.ClearText)
         },
+        onPokemonsNeeded = viewModel::onPokemonsNeeded,
         onCardClick = { cardUiModel ->
             toPokemonDetails.invoke(
                 cardUiModel.id,
@@ -110,6 +115,7 @@ private fun PokemonListScreenContent(
     onTextChange: (newText: String) -> Unit,
     onClearText: () -> Unit,
     onCardClick: (item: PokemonCardUiModel) -> Unit,
+    onPokemonsNeeded: (ids: List<PokemonId>) -> Unit = {},
 ) {
     val lazyGridState = rememberSaveable(
         searchText,
@@ -186,6 +192,25 @@ private fun PokemonListScreenContent(
                 }
 
                 is PokemonListUiState.ListLoaded -> {
+                    val currentOnPokemonsNeeded by rememberUpdatedState(onPokemonsNeeded)
+                    LaunchedEffect(lazyGridState, uiState.items) {
+                        snapshotFlow {
+                            val visible = lazyGridState.layoutInfo.visibleItemsInfo
+                            (visible.firstOrNull()?.index ?: 0) to (visible.lastOrNull()?.index ?: -1)
+                        }.collect { (first, last) ->
+                            // Visible cards plus a screenful ahead, so scrolling rarely shows skeletons.
+                            val from = first.coerceAtLeast(0)
+                            val to = (last + PREFETCH_AHEAD).coerceAtMost(uiState.items.lastIndex)
+                            if (from <= to) {
+                                currentOnPokemonsNeeded(
+                                    uiState.items.subList(from, to + 1)
+                                        .filterIsInstance<PokemonCardUiModel.PokemonSkeleton>()
+                                        .map { it.id }
+                                )
+                            }
+                        }
+                    }
+
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(3),
                         state = lazyGridState,

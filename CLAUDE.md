@@ -25,7 +25,7 @@ The only existing tests are the template `Example*` tests.
 
 ## Architecture
 
-Multi-module Compose app, a Pokédex backed by PokeAPI (`https://pokeapi.co/api/v2/`). It uses Dagger (with KSP, no Hilt), Navigation 3, Room 3 (package `androidx.room3`), and DataStore. Dependency versions are in `gradle/libs.versions.toml`, though a few are declared inline in module build files.
+Multi-module Compose app, a Pokédex backed by PokeAPI (`https://pokeapi.co/api/v2/`). It uses Dagger (with KSP, no Hilt), Navigation 3, Room 3 (package `androidx.room3`), and DataStore. Dependency versions are in `gradle/libs.versions.toml`. Always declare dependencies in `gradle/libs.versions.toml`, not hardcode them in build.gradle file of module.
 
 ### Modules
 

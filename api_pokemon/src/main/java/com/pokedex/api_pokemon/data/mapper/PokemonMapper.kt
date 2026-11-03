@@ -13,7 +13,7 @@ import com.pokedex.api_pokemon.domain.model.Pokemon
 import com.pokedex.api_pokemon.domain.model.Stat
 import com.pokedex.api_pokemon.domain.model.Type
 import com.pokedex.core.PokemonTypeEnum
-import com.pokedex.core.domain.model.PokemonId
+import com.pokedex.core.getTypeEnum
 import com.pokedex.core.network.mapper.toDomain
 
 internal fun PokemonResponse.toDomain(): Pokemon {
@@ -24,13 +24,13 @@ internal fun PokemonResponse.toDomain(): Pokemon {
         height = height,
         isDefault = isDefault,
         abilities = abilities.map { it.toDomain() },
-        cries = cries.toDomain(),
+        cries = cries?.toDomain() ?: Cry(latest = "", legacy = ""),
         forms = forms.map { it.name ?: "" },
         locationAreaEncounters = locationAreaEncounters,
         moves = moves.map { it.toDomain() },
         stats = stats.map { it.toDomain() },
         types = types.map { it.toDomain() },
-        officialArtwork = sprites.other.officialArtwork?.frontDefault ?: "",
+        officialArtwork = sprites.other?.officialArtwork?.frontDefault ?: "",
         weight = weight,
         speciesLink = species.url
     )
@@ -40,9 +40,8 @@ internal fun TypeEntry.toDomain(): Type {
     return Type(
         name = type.name ?: "",
         url = type.url,
-        typeEnum = type.name?.let {
-            PokemonTypeEnum.valueOf(it.uppercase())
-        } ?: PokemonTypeEnum.UNKNOWN
+        // An unknown/new type from the API must not fail decoding of the whole pokemon.
+        typeEnum = type.name?.getTypeEnum() ?: PokemonTypeEnum.UNKNOWN
     )
 }
 

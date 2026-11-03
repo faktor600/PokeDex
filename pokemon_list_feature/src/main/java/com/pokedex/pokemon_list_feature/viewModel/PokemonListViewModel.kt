@@ -3,7 +3,9 @@ package com.pokedex.pokemon_list_feature.viewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pokedex.api_pokemon.domain.model.PokemonSearchItem
+import com.pokedex.api_pokemon.domain.usecase.PrefetchPokemonsUseCase
 import com.pokedex.api_pokemon.domain.usecase.SearchPokemonsUseCase
+import com.pokedex.core.domain.model.PokemonId
 import com.pokedex.compose_core.models.PokemonCardUiModel
 import com.pokedex.core.utils.getPokemonNameForPresentation
 import com.pokedex.core.utils.getPokemonNumberForPresentation
@@ -33,7 +35,8 @@ import javax.inject.Inject
 private const val SEARCH_DELAY = 300L
 
 class PokemonListViewModel @Inject constructor(
-    private val searchPokemonsUseCase: SearchPokemonsUseCase
+    private val searchPokemonsUseCase: SearchPokemonsUseCase,
+    private val prefetchPokemonsUseCase: PrefetchPokemonsUseCase
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<PokemonListUiState>(PokemonListUiState.Loading)
     val uiState: StateFlow<PokemonListUiState>
@@ -100,6 +103,12 @@ class PokemonListViewModel @Inject constructor(
             MainScreenIntent.FiltersClick -> filtersClick()
             is MainScreenIntent.TextChange -> updateSearchText(intent.newText)
         }
+    }
+
+    /** Downloads details only for the cards the user is about to see (not for the whole Pokédex). */
+    fun onPokemonsNeeded(ids: List<PokemonId>) {
+        if (ids.isEmpty()) return
+        viewModelScope.launch { prefetchPokemonsUseCase.execute(ids) }
     }
 
     private fun filtersClick() {

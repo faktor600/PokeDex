@@ -29,13 +29,13 @@ class PokemonResponse(
     val abilities: List<AbilityEntry>,
 
     @SerialName("cries")
-    val cries: CryResponse,
+    val cries: CryResponse? = null,
 
     @SerialName("forms")
     val forms: List<ItemWithUrlResponse>,
 
     @SerialName("location_area_encounters")
-    val locationAreaEncounters: String,
+    val locationAreaEncounters: String = "",
 
     @SerialName("moves")
     val moves: List<MoveEntryResponse>,
@@ -89,7 +89,7 @@ data class PokemonSprites(
     val frontShinyFemale: String?,
 
     @SerialName("other")
-    val other: PokemonOtherSprites
+    val other: PokemonOtherSprites? = null
 )
 
 @Serializable
