@@ -1,0 +1,53 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "dac1e2cb9747c63bfcb4e007a1179e71",
+    "entities": [
+      {
+        "tableName": "pokemon",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `pokemon_name` TEXT NOT NULL, `pokemon_type` TEXT NOT NULL, `pokemon_image_url` TEXT, `pokemon_json_data` TEXT, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "pokemon_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "pokemon_type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pokemonMainImageUrl",
+            "columnName": "pokemon_image_url",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "json",
+            "columnName": "pokemon_json_data",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'dac1e2cb9747c63bfcb4e007a1179e71')"
+    ]
+  }
+}

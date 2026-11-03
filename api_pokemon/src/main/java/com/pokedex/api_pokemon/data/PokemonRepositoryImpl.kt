@@ -2,7 +2,9 @@ package com.pokedex.api_pokemon.data
 
 import com.pokedex.api_pokemon.dao.PokemonDao
 import com.pokedex.api_pokemon.dao.entities.PokemonEntity
+import com.pokedex.api_pokemon.dao.PokemonSpeciesDao
 import com.pokedex.api_pokemon.dao.entities.PokemonListRow
+import com.pokedex.api_pokemon.dao.entities.PokemonSpeciesEntity
 import com.pokedex.api_pokemon.data.api.PokemonApi
 import com.pokedex.api_pokemon.data.mapper.toDomain
 import com.pokedex.api_pokemon.data.response.PokemonResponse
@@ -44,6 +46,7 @@ import javax.inject.Inject
 internal class PokemonRepositoryImpl @Inject constructor(
     private val api: PokemonApi,
     private val pokemonDao: PokemonDao,
+    private val speciesDao: PokemonSpeciesDao,
     private val networkEvents: NetworkEvents
 ) : PokemonRepository {
 
@@ -54,9 +57,6 @@ internal class PokemonRepositoryImpl @Inject constructor(
         /** Time of the last failed background fetch, used to avoid hammering the API. */
         private val failedAtMap = ConcurrentHashMap<PokemonId, Long>()
         private const val RETRY_COOLDOWN_MS = 30_000L
-
-        /** Species never change during a session, so the details screen doesn't need to refetch them. */
-        private val speciesCache = ConcurrentHashMap<String, PokemonSpecies>()
 
         /** Relative to the Retrofit baseUrl. */
         private const val FIRST_PAGE_PATH = "pokemon"
@@ -78,13 +78,26 @@ internal class PokemonRepositoryImpl @Inject constructor(
 
     override suspend fun getPokemonSpecies(url: String): Result<PokemonSpecies> = withContext(Dispatchers.IO) {
         try {
-            speciesCache[url]?.let { return@withContext Result.success(it) }
+            val id = getPokemonIdFromUrl(url).id
 
+            // 1. The database is the source of truth.
+            speciesDao.getById(id)?.let { entity ->
+                try {
+                    return@withContext Result.success(
+                        AppJson.decodeFromString<PokemonSpeciesResponse>(entity.json).toDomain()
+                    )
+                } catch (_: SerializationException) {
+                    // The stored json doesn't match the current model: drop it and download again.
+                    speciesDao.deleteById(id)
+                }
+            }
+
+            // 2. Download, validate by decoding, save and return.
             val body = executeWithRetry { api.getSpeciesByUrl(url) }.string()
-            val species = AppJson.decodeFromString<PokemonSpeciesResponse>(body).toDomain()
+            val response = AppJson.decodeFromString<PokemonSpeciesResponse>(body)
 
-            speciesCache[url] = species
-            Result.success(species)
+            speciesDao.insert(PokemonSpeciesEntity(id = id, name = response.name, json = body))
+            Result.success(response.toDomain())
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
