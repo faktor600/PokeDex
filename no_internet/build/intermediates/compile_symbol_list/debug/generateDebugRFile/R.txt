@@ -1,3 +1,0 @@
-int string no_internet_description 0x0
-int string no_internet_retry 0x0
-int string no_internet_title 0x0

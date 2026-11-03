@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<incidents format="6" by="lint 9.1.1" type="partial_results">
-    <map id="UnusedResources">
-        <entry
-            name="model"
-            string="drawable[ic_wifi_off(R),ic_refresh_cw(R)],string[no_internet_title(U),no_internet_description(U),no_internet_retry(U)];;;;"/>
-    </map>
-
-</incidents>
