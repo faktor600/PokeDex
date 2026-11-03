@@ -23,4 +23,9 @@ class DatabaseModule {
     fun dao(
         appDatabase: AppDatabase
     ) = appDatabase.pokemonDao()
+
+    @Provides
+    fun speciesDao(
+        appDatabase: AppDatabase
+    ) = appDatabase.pokemonSpeciesDao()
 }

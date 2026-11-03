@@ -56,7 +56,7 @@ Each feature's `route/` package has a `@Serializable` `NavKey` route and an `Ent
 
 ### Adding a feature screen
 
-Create the module and add it to `settings.gradle.kts` and `app/build.gradle.kts`. Add the subcomponent and factory module, then register them in `AppComponent`. Register the entry provider in `MainActivityContainer`.
+Create the module and add it to `settings.gradle.kts` and `app/build.gradle.kts`. Add .gitignore file and ignore /build. Add the subcomponent and factory module, then register them in `AppComponent`. Register the entry provider in `MainActivityContainer`.
 
 ### Data flow
 
@@ -66,6 +66,9 @@ Room is the source of truth, and the UI reads from it:
 2. **Stub rows:** a `PokemonEntity` whose `type` is `PokemonTypeEnum.UNKNOWN`'s backend string and whose `json` is null has only its id and name.
 3. **List:** `searchForPokemonsByNameOrId` returns a Room `Flow`. Stubs are emitted as `PokemonSearchItem.NotLoaded`, which also starts a background fetch. The saved row makes the Flow re-emit with `LoadedPokemon`.
 4. **Details:** `getPokemon` waits for a fetch job tracked per id, then decodes the full response from the raw JSON stored in `PokemonEntity.json`. Fetches are limited to 20 concurrent by a semaphore.
+5. **Species:** `getPokemonSpecies` reads `PokemonSpeciesEntity` (table `pokemon_species`, raw response in `json`) via `PokemonSpeciesDao`. If the row is missing, or its json no longer decodes, it downloads, saves and returns the species. Store API data as raw json, not as per-field columns, so model changes don't need a DB reload.
+
+Database schema: `AppDatabase` is at version 2. Schemas are exported to `core_database/schemas/`; commit them and add an `@AutoMigration` in `AppDatabase` (or a manual `Migration` when auto can't handle the change, e.g. renames) on every version bump. Never use destructive migration, since the `pokemon` table holds the whole downloaded Pokédex.
 
 ### Screen conventions
 

@@ -13,6 +13,10 @@ kotlin {
     }
 }
 
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 dependencies {
     implementation(project(":api_pokemon:dao"))
     implementation(libs.room)
