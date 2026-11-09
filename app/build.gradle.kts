@@ -70,7 +70,7 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     debugImplementation("com.github.chuckerteam.chucker:library:4.3.1")
     releaseImplementation("com.github.chuckerteam.chucker:library-no-op:4.3.1")
-    implementation("io.coil-kt.coil3:coil:3.6.0")
+    implementation(libs.bundles.coil)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

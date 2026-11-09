@@ -67,11 +67,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.ui.platform.LocalContext
-import coil3.compose.AsyncImage
-import coil3.request.ImageRequest
 import com.pokedex.compose_core.R as ComposeCoreR
 import com.pokedex.compose_core.common.PokemonTypePresentationModel
+import com.pokedex.compose_core.components.CachedAsyncImage
 import com.pokedex.compose_core.components.PokemonTypeChip
 import com.pokedex.compose_core.di.daggerViewModel
 import com.pokedex.compose_core.theme.AppTheme
@@ -386,16 +384,12 @@ private fun ImageWithScroll(
             )
         }
 
-        AsyncImage(
+        CachedAsyncImage(
             modifier = Modifier
                 .weight(1f)
                 .aspectRatio(1f)
                 .then(imageModifier),
-            model = ImageRequest.Builder(LocalContext.current)
-                .data(imageUrl.ifBlank { null })
-                // пока грузится полноразмерная картинка, показываем уже закэшированную из списка
-                .placeholderMemoryCacheKey(imageUrl)
-                .build(),
+            url = imageUrl,
             placeholder = placeholder,
             error = placeholder,
             fallback = placeholder,

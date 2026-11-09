@@ -17,6 +17,7 @@ import com.pokedex.api_pokemon.domain.model.PokemonSearchItem
 import com.pokedex.api_pokemon.domain.model.PokemonSpecies
 import com.pokedex.core.PokemonTypeEnum
 import com.pokedex.core.asStringBackend
+import com.pokedex.core.domain.ImagePrefetcher
 import com.pokedex.core.domain.model.PokemonId
 import com.pokedex.core.getTypeEnum
 import com.pokedex.core.network.AppJson
@@ -47,7 +48,8 @@ internal class PokemonRepositoryImpl @Inject constructor(
     private val api: PokemonApi,
     private val pokemonDao: PokemonDao,
     private val speciesDao: PokemonSpeciesDao,
-    private val networkEvents: NetworkEvents
+    private val networkEvents: NetworkEvents,
+    private val imagePrefetcher: ImagePrefetcher
 ) : PokemonRepository {
 
     companion object {
@@ -150,10 +152,13 @@ internal class PokemonRepositoryImpl @Inject constructor(
 
         try {
             withContext(Dispatchers.IO) {
-                pokemonDao.getNotLoadedIds(ids.map { it.id }).forEach { id ->
+                val rawIds = ids.map { it.id }
+                pokemonDao.getNotLoadedIds(rawIds).forEach { id ->
                     // Idempotent: already running / recently failed ids are skipped.
                     ensureLoaded(PokemonId(id), background = true)
                 }
+                // Cold start: rows are in Room but the Coil memory cache is empty. Cheap if already cached.
+                pokemonDao.getLoadedImageUrls(rawIds).forEach(imagePrefetcher::prefetch)
             }
         } catch (e: CancellationException) {
             throw e
@@ -249,15 +254,20 @@ internal class PokemonRepositoryImpl @Inject constructor(
     private suspend fun savePokemonToDb(jsonString: String) {
         val pokemonResponse = AppJson.decodeFromString<PokemonResponse>(jsonString)
 
+        val imageUrl = pokemonResponse.sprites.other?.officialArtwork?.frontDefault
+            ?: pokemonResponse.sprites.frontDefault
+            ?: ""
+
+        // Start the image download right away, in parallel with the Room write and the UI update.
+        imagePrefetcher.prefetch(imageUrl)
+
         pokemonDao.insertPokemon(
             PokemonEntity(
                 id = pokemonResponse.id.id,
                 name = pokemonResponse.name,
                 type = pokemonResponse.types.firstOrNull()?.type?.name
                     ?: PokemonTypeEnum.UNKNOWN.asStringBackend(),
-                pokemonMainImageUrl = pokemonResponse.sprites.other?.officialArtwork?.frontDefault
-                    ?: pokemonResponse.sprites.frontDefault
-                    ?: "",
+                pokemonMainImageUrl = imageUrl,
                 json = jsonString
             )
         )

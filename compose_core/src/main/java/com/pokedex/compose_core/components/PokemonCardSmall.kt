@@ -19,7 +19,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import coil3.compose.AsyncImage
 import com.pokedex.compose_core.R
 import com.pokedex.compose_core.common.dropShadow2dp
 import com.pokedex.compose_core.models.PokemonCardUiModel
@@ -77,13 +76,13 @@ fun PokemonCardSmall(
             )
         }
 
-        AsyncImage(
+        CachedAsyncImage(
             modifier = Modifier
                 .padding(16.dp)
                 .align(Alignment.Center)
                 .aspectRatio(1f)
                 .pokemonSharedImage(model.id),
-            model = model.url,
+            url = model.url,
             contentDescription = null,
             contentScale = ContentScale.Fit,
             placeholder = painterResource(R.drawable.pokemon_placeholder),

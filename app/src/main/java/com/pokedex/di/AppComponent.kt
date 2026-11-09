@@ -22,7 +22,8 @@ import javax.inject.Singleton
         PokemonDetailsComponentFactoryModule::class,
         AppContextModule::class,
         ChuckerModule::class,
-        DatabaseModule::class
+        DatabaseModule::class,
+        ImageModule::class
     ]
 )
 interface AppComponent {

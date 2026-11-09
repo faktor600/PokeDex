@@ -38,6 +38,13 @@ interface PokemonDao {
     @Query("SELECT id FROM $POKEMON_TABLE_NAME WHERE id IN (:ids) AND $POKEMON_DATA IS NULL")
     suspend fun getNotLoadedIds(ids: List<Long>): List<Long>
 
+    /** Image urls of already downloaded pokemons from [ids]. */
+    @Query(
+        "SELECT $POKEMON_MAIN_IMAGE_URL FROM $POKEMON_TABLE_NAME WHERE id IN (:ids) " +
+            "AND $POKEMON_DATA IS NOT NULL AND $POKEMON_MAIN_IMAGE_URL IS NOT NULL AND $POKEMON_MAIN_IMAGE_URL <> ''"
+    )
+    suspend fun getLoadedImageUrls(ids: List<Long>): List<String>
+
     /**
      * [likePattern] must already be escaped with `\` for `%` and `_`.
      */
